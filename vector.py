@@ -51,7 +51,10 @@ class Vector2D(object):
     
     # get the norm (length/magnitude) of self
     def norm(self):
-        return math.sqrt(self.x**2 + self.y**2)
+        return math.sqrt(self.norm_squared())
+    
+    def norm_squared(self):
+        return self.x**2 + self.y**2
 
     # scale self by scalar
     def scale(self, scalar):

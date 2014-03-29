@@ -79,6 +79,7 @@ class Object2D(object):
         self.oriented_faces = []
         
         self.collided_with = []
+        self.collidable = True
         
     def get_position(self):
         return self.position.copy()
@@ -89,8 +90,29 @@ class Object2D(object):
     def get_velocity(self):
         return self.velocity.copy()
     
+    def set_velocity(self, velocity):
+        self.velocity.set_vect(velocity)
+    
+    def set_orientation(self, orientation):
+        self.orientation = orientation
+        
+    def get_orientation(self):
+        return self.orientation
+    
+    def set_ang_velocity(self, ang_velocity):
+        self.ang_velocity = ang_velocity
+        
+    def get_ang_velocity(self):
+        return self.ang_velocity
+    
     def get_mass(self):
         return self.mass
+    
+    def set_collidable(self, collidable):
+        self.collidable = collidable
+        
+    def get_collidable(self):
+        return self.collidable
     
     def get_bounding_rect(self):
         left, top = self.bb_min.get_int()
@@ -499,6 +521,10 @@ class Dynamics(object):
     def resolve_collisions(self, objects, dt):
         for obj1 in objects:
             for obj2 in objects:
+                if obj1.get_collidable() == False:
+                    continue
+                if obj2.get_collidable() == False:
+                    continue
                 if obj1 == obj2:
                     continue
                 if obj2.has_collided_with(obj1):
