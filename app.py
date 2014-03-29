@@ -18,15 +18,11 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # imports
-import math
-
 import pygame.display
 import pygame.time
 import pygame.event
-import pygame.draw
-import pygame
 
-import game
+import screen
         
 class AppState(object):
     DISPLAY_WIDTH = 800
@@ -42,7 +38,7 @@ class AppState(object):
     # list of game screens, updated dynamically
     screens = [None]
     
-    # previous frame's time taken in seconds
+    # previous frame's time taken in seconds   
     frametime = 1.0/FRAMERATE
     
 
@@ -132,7 +128,7 @@ class AppState(object):
         pygame.init()
         self.setup_display()
         
-        titleScreen = game.TitleScreen(self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT, self, self.display)
+        titleScreen = screen.TitleScreen(self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT, self, self.display)
         titleScreen.activate()
         self.screens.append(titleScreen)
         
@@ -145,9 +141,9 @@ class AppState(object):
 
 def main():
     print '''PygameGame Copyright (C) 2014  Eric Eveleigh
-This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE-GPLv3.txt.
+This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE
 This is free software, and you are welcome to redistribute it
-under certain conditions; for details see LICENSE-GPLv3.txt.'''
+under certain conditions; for details see LICENSE.'''
     
     app = AppState()
     app.run()
