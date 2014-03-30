@@ -2,7 +2,7 @@
 # screen.py - game screens functionality
 # and other stuff
 #
-# PygameGame
+# Space Travel
 #     Copyright (C) 2014  Eric Eveleigh
 # 
 #     This program is free software: you can redistribute it and/or modify
@@ -36,7 +36,7 @@ class BGM(object):
     def play(self, volume):
         pygame.mixer.music.load(self.filename)
         pygame.mixer.music.set_volume(volume)
-        pygame.mixer.music.play(-1)
+       # pygame.mixer.music.play(-1)
         pygame.mixer.music.set_endevent(BGM_STOPPED)
         
     def pause(self):

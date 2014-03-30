@@ -1,14 +1,5 @@
-Space Travel
-============
-
-Created using Free (as in 'free speech', not 'free beer') sofware.
-
-Eclipse IDE:
-    https://www.eclipse.org/
-PyDev for Eclipse:
-    http://pydev.org/
-ArchLinux GNU/Linux Distribution:
-    https://www.archlinux.org/
+Game Name Here
+==============
 
 Idea:
 =====
@@ -25,13 +16,13 @@ Graphics:
 
 Fonts:
 ======
- -Menu Font
+ - AAAAAA
      File: fonts/NEW ACADEMY.ttf
      Name: NEW ACADEMY
      Creator: Terran21 (Gustavo Paz)
      URL: http://openfontlibrary.org/en/font/new-academy
      (C) Gustavo Paz, CC-BY-SA 4.0 License
- -Title Font
+ - BBBBBB
      Files: fonts/Rase-GPL.otf, fonts/Rase-GPL-Bold.otf, fonts/Rase-GPL-Outline.otf
      Name: Rase-GPL
      Creator: Matthew Napolitano
@@ -41,12 +32,12 @@ Fonts:
 Music:
 =====
  -Title BGM: 
-     File: BGM/SATELL.S3M
+     File: SATELL.S3M
      Name: Satellite One
      Composer: Purple Motion (Jonne Valtonen) of Future Crew
      (C) 1993 Jonne Valtonen.
  -In-game BGM:
-     File: BGM/aryx.s3m
+     File: aryx.s3m
      Name: aryx
      Composer: Karsten Koch
      (C) 1995 Karsten Koch.

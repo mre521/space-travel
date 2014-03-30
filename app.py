@@ -1,7 +1,7 @@
 #
 # app.py - game entry point and top level framework
 #
-# PygameGame
+# Space Travel
 #     Copyright (C) 2014  Eric Eveleigh
 # 
 #     This program is free software: you can redistribute it and/or modify
