@@ -28,6 +28,7 @@ from physics import Object2D
 
 import entity
 import physics
+import screen
 
     
 STAR_VELOCITY = -2000
@@ -148,18 +149,100 @@ class StarField(object):
         for star in self.stars:
             pos = star.get_position().get_int()
             pygame.draw.circle(surface, star.get_color(), pos, int(star.get_size()), 0)
+            
+
+pygame.font.init()
+            
+
+INFO_DISTANCE_TEXT = "Distance Travelled: "
+INFO_POINTS_TEXT = "Points: "
+INFO_REGENS_TEXT = "Regens Left: "
+INFO_SHIELD_LEFT = "Shield Time_Left: "
+INFO_WEAPON_LEFT = "Weapon Time Left: "
+INFODISPLAY_FONT = pygame.font.Font("fonts/NEW ACADEMY.ttf", 30)
+INFO_TEXT_COLOR = (255,255,255)
+class InfoDisplay(object):
+    '''
+    Displays game information on the screen
+    as the game plays out.
     
+    TODO: generalize the methods for any number
+    of texts, factor out code
+    '''
+    def __init__(self, position):
+        self.create_static_texts()
+        self.init_values()
+        self.set_position(position)
         
+    def create_static(self, text):
+        return screen.RenderedText(INFODISPLAY_FONT, text, INFO_TEXT_COLOR, False, True)
+    
+    def create_static_texts(self):
+        self.distance_static = self.create_static(INFO_DISTANCE_TEXT)
+        self.points_static = self.create_static(INFO_POINTS_TEXT)
+        self.regens_static = self.create_static(INFO_REGENS_TEXT)
+        
+    def init_values(self):
+        self.distance_value = None
+        self.points_value = None
+        self.regens_value = None
+        
+    def set_position(self, position):
+        self.position = position
+    
+    def set_text_position(self):
+        position = self.position
+        
+        pos_x = position[0]
+        pos_y = position[1]
+        
+        self.distance_static.set_position((pos_x, pos_y))
+        self.distance_value.set_position((pos_x+self.distance_static.get_width(), pos_y))
+        pos_y += self.distance_static.get_height()
+        
+        self.points_static.set_position((pos_x, pos_y))
+        self.points_value.set_position((pos_x+self.points_static.get_width(), pos_y))
+        pos_y += self.points_static.get_height()
+        
+        self.regens_static.set_position((pos_x, pos_y))
+        self.regens_value.set_position((pos_x+self.regens_static.get_width(), pos_y))
+        pos_y += self.regens_static.get_height()
+        
+    def set_distance(self, distance):
+        self.distance_value = self.create_static(str(distance))
+        
+    def set_points(self, points):
+        self.points_value = self.create_static(str(points))
+    
+    def set_regens(self, regens):
+        self.regens_value = self.create_static(str(regens))
+        
+    def draw(self, surface):
+        self.set_text_position()
+        self.distance_static.draw(surface) 
+        self.distance_value.draw(surface)
+        
+        self.points_static.draw(surface) 
+        self.points_value.draw(surface)
+        
+        self.regens_static.draw(surface) 
+        self.regens_value.draw(surface)
+        
+
+# three difficulty modes        
 GAME_DIFF_EASY = 1
 GAME_DIFF_MEDIUM = 2
 GAME_DIFF_HARD = 3
+# corresponding came settings
 GAME_SETTINGS_EASY = {'distance': 1200, 'default_regens': 5, 'default_hp': 100, 'aster_prob': 1.0/5, 'hole_prob': 1.0/20, 'shield_prob': 1.0/10, 'weapon_prob': 1.0/20}
 GAME_SETTINGS_MEDIUM = {'distance': 2400, 'default_regens': 3, 'default_hp': 100, 'aster_prob': 1.0/4, 'hole_prob': 1.0/15, 'shield_prob': 1.0/15, 'weapon_prob': 1.0/25}
 GAME_SETTINGS_HARD = {'distance': 4800, 'default_regens': 2, 'default_hp': 100, 'aster_prob': 1.0/3, 'hole_prob': 1.0/10, 'shield_prob': 1.0/20, 'weapon_prob': 1.0/30 }
-GAME_MODE_NORMAL = 1
-GAME_MODE_ENDURANCE = 2
+# game modes
+GAME_MODE_NORMAL = 1 # fly until destination reached
+GAME_MODE_ENDURANCE = 2 # fly until no regenerations left
+
 GAME_TRAVEL_VELOCITY = 10.0 # 10 units of distance per second
-GAME_SPAWN_PERIOD = 1.0 # spawn potential every second
+GAME_SPAWN_PERIOD = 1.0 # how many seconds between spawning objects
 class Game(object):
     '''
     The whole reason for creating every other class.
@@ -183,13 +266,20 @@ class Game(object):
         self.star_field = StarField(screen_rect.width, screen_rect.height, 10)
         
         self.dynamics = physics.Dynamics()
+        self.infodisplay = InfoDisplay((20,20))
         
         self.entity_list = []
         
+        # Useful to remove entities that fly off the screen too far
+        self.despawn_rect = pygame.Rect(self.screen_rect)
+        self.despawn_rect.width = self.screen_rect.width + 300
+        self.despawn_rect.height = self.screen_rect.height + 100
+        self.despawn_rect.center = self.screen_rect.center
+        
         self.start_game()
         
-        self.add_entity(entity.ShieldPowerup(Vector2D(250, 410), Vector2D(0,0), 0.0, 0.0))
-        self.add_entity(entity.WeaponPowerup(Vector2D(300, 410), Vector2D(0,0), 0.0, 0.0))
+        #self.add_entity(entity.ShieldPowerup(Vector2D(250, 410), Vector2D(0,0), 0.0, 0.0))
+        #self.add_entity(entity.WeaponPowerup(Vector2D(300, 410), Vector2D(0,0), 0.0, 0.0))
     
     def default_settings(self):
         self.settings = Game.Settings({'difficulty': GAME_DIFF_MEDIUM, 'mode': GAME_MODE_NORMAL})
@@ -210,6 +300,8 @@ class Game(object):
             self.settings.add(GAME_SETTINGS_MEDIUM)
         elif diff == GAME_DIFF_HARD:
             self.settings.add(GAME_SETTINGS_HARD)
+        else:
+            self.settings.add(GAME_SETTINGS_EASY)
             
     def start_game(self):
         self.create_player()
@@ -220,10 +312,22 @@ class Game(object):
         self.spawn_timer = 1.0
         self.points = 0
         
+        self.infodisplay.set_distance(self.distance_travelled)
+        self.infodisplay.set_points(self.points)
+        self.infodisplay.set_regens(self.player.get_regens_left())
+        
+        self.game_won = False
         self.game_over = False
+        
         
     def random_vertical_position(self):
         return random.random() * self.screen_rect.height
+    
+    def random_position(self):
+        position_x = self.screen_rect.width + 100
+        position_y = self.random_vertical_position()
+        position = Vector2D(position_x, position_y)
+        return position
     
     def probability_event(self, probability):
         rand = random.random()
@@ -232,13 +336,11 @@ class Game(object):
         
         return False
     
-    def random_float(self, min, max):
-        return min + random.random()*(max-min)
+    def random_float(self, min_, max_):
+        return min_ + random.random()*(max_-min_)
     
     def spawn_asteroid(self):
-        position_x = self.screen_rect.width + 100
-        position_y = self.random_vertical_position()
-        position = Vector2D(position_x, position_y)
+        position = self.random_position()
         
         v_min = entity.ASTEROID_VELOCITY_MIN
         v_max = entity.ASTEROID_VELOCITY_MAX
@@ -251,11 +353,30 @@ class Game(object):
         self.add_entity(ent)
         
     def spawn_hole(self):
-        pass
-    def spawn_shield(self):
-        pass
-    def spawn_weapon(self):
-        pass
+        position = self.random_position()
+        
+        v_min = entity.HOLE_VELOCITY_MIN
+        v_max = entity.HOLE_VELOCITY_MAX
+        
+        speed = self.random_float(v_min, v_max)
+        
+        velocity = Vector2D(-1.0, 0.0).rotate(self.random_float(-entity.HOLE_DIRECTION_SPREAD, entity.HOLE_DIRECTION_SPREAD)).scale(speed)
+        
+        ent = entity.Hole(position, velocity, 0.0, 0.0)
+        self.add_entity(ent)
+    
+    def spawn_powerup(self, powerup_class):
+        position = self.random_position()
+        
+        v_min = entity.POWERUP_VELOCITY_MIN
+        v_max = entity.POWERUP_VELOCITY_MAX
+        
+        speed = self.random_float(v_min, v_max)
+        
+        velocity = Vector2D(-1.0, 0.0).scale(speed)
+        
+        ent = powerup_class(position, velocity, 0.0, 0.0)
+        self.add_entity(ent)
     
     def update_spawner(self, dt):
         self.spawn_timer -= dt
@@ -277,13 +398,20 @@ class Game(object):
                 self.spawn_hole()
             if spawn_shield == True:
                 # spawn a shield powerup
-                self.spawn_shield()
+                self.spawn_powerup(entity.ShieldPowerup)
             if spawn_weapon == True:
                 # spawn a weapon powerup
-                self.spawn_weapon()
+                self.spawn_powerup(entity.WeaponPowerup)
                 
     def update_distance(self, dt):
-        self.distance += GAME_TRAVEL_VELOCITY*dt
+        self.distance_travelled += GAME_TRAVEL_VELOCITY*dt
+        self.infodisplay.set_distance(self.distance_travelled)
+        
+        if self.settings.mode == GAME_MODE_NORMAL:
+            if self.distance_travelled >= self.distance:
+                self.distance_travelled = self.distance
+                self.game_won = True
+                self.game_is_over()
             
     def create_player(self):
         self.player = entity.Player(self.settings.default_hp, self.settings.default_regens, Vector2D(self.screen_rect.width/4, self.screen_rect.height/2), Vector2D(0,0), 0.0)
@@ -309,7 +437,12 @@ class Game(object):
         entity.set_position(position)
         
     def player_destroyed(self):
+        '''
+        Do what is required when player
+        gets destroyed
+        '''
         self.player.lose_regen()
+        self.infodisplay.set_regens(self.player.get_regens_left())
         self.show_player_explosion()
         if self.player.get_regens_left() <= 0:
             self.game_is_over()
@@ -349,8 +482,12 @@ class Game(object):
         elif key == pygame.K_LEFT or key == pygame.K_a:
             self.player.turn_stop()
             
-    def remove_offscreen_shot(self, entity):
-        if self.screen_rect.colliderect(entity.get_bounding_rect()) == False:
+    def remove_offscreen_entity(self, entity):
+        '''
+        Remove entities that have gone too
+        far off screen
+        '''
+        if self.despawn_rect.colliderect(entity.get_bounding_rect()) == False:
             self.entity_list.remove(entity)
             print "bam"
 
@@ -372,59 +509,71 @@ class Game(object):
         
     def game_is_over(self):
         '''
-        Show game over text, wait a bit, proceed to either high-scores
-        or title screen depending on game mode.
+        End the game
+        '''
+        self.game_over = True
+
+    def game_over_update(self, frametime):
+        '''
+        Show game over/win text for a while,
+        then proceed to title screen or high
+        scores.
         '''
         pass
 
     def update(self, frametime):
         self.star_field.update(frametime)
         
-        self.dynamics.resolve_collisions(self.entity_list, frametime)
-        for entity1 in self.entity_list:
-            entity1.update(frametime)
-            
-            # remove Entitys that are destroyed
-            if entity1.get_alive() == False:
+        if self.game_over == False:
+            self.dynamics.resolve_collisions(self.entity_list, frametime)
+            for entity1 in self.entity_list:
+                entity1.update(frametime)
+                
+                # remove Entitys that are destroyed
+                if entity1.get_alive() == False:
+                    if isinstance(entity1, entity.Player):
+                        self.player_destroyed()
+                    self.entity_list.remove(entity1)
+                    continue
+                
+                # remove Entitys that are outside of 
+                # the allowable region
+                self.remove_offscreen_entity(entity1)
+                
+                # do Entity type-specific updates
                 if isinstance(entity1, entity.Player):
-                    self.player_destroyed()
-                self.entity_list.remove(entity1)
-                continue
-            
-            # do Entity type-specific updates
-            if isinstance(entity1, entity.Player):
-                self.wrap_player(entity1)
-            elif isinstance(entity1, entity.Player.Shot):
-                self.remove_offscreen_shot(entity1)
-            elif isinstance(entity1, entity.Hole):
-                # every entity1 is attracted to the hole
-                for entity2 in self.entity_list:
-                    if entity2 == entity1:
-                        continue # avoid divn by zero in hole_gravity_force (zero separation between ent and itself)
-                    self.hole_gravity_force(entity1, entity2)
-                    
-        '''
-        Do the spawning and distance updates
-        '''
-        if self.player.get_alive() == True:
-            # spawn Asteroids, Holes and Powerups
-            # when the player is alive
-            self.update_spawner(frametime)
-            self.update_distance(frametime)
+                    self.wrap_player(entity1)
+                elif isinstance(entity1, entity.Hole):
+                    # every entity1 is attracted to the hole
+                    for entity2 in self.entity_list:
+                        if entity2 == entity1:
+                            continue # avoid divn by zero in hole_gravity_force (zero separation between ent and itself)
+                        self.hole_gravity_force(entity1, entity2)
+                        
+            '''
+            Do the spawning and distance updates
+            '''
+            if self.player.get_alive() == True:
+                # spawn Asteroids, Holes and Powerups
+                # when the player is alive
+                self.update_spawner(frametime)
+                self.update_distance(frametime)
+            else:
+                # spawn the player when they finish exploding
+                if self.is_player_finished_exploding():
+                    self.spawn_player()
         else:
-            # spawn the player when they finish exploding
-            if self.is_player_finished_exploding():
-                self.spawn_player()
-
+            self.game_over_update(frametime)
                 
     def draw(self, surface):
         '''
         Draw the star field and all the
         entities on top, basically.
-
         '''
         surface.fill((0,0,0))
         self.star_field.draw(surface)
         for entity in self.entity_list:
             entity.draw(surface)
+            
+        self.infodisplay.draw(surface)
         

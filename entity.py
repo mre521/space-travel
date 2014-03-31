@@ -200,7 +200,12 @@ class Player(Entity):
         self.set_velocity(velocity)
         self.set_velocity(velocity)
         self.make_invuln()
+        
         self.shot_timer = 0.0
+        
+        # remove powerups
+        
+        self.shot_time = PLAYER_SHOT_TIME
         self.shield_timer = 0.0
         
     def make_invuln(self):
@@ -361,8 +366,8 @@ class Asteroid(Entity):
             return False
         
         '''
-        Asteroids are destroyed if they hit a player
-        but they still hurt the player.
+        Asteroids are damaged by Shots from the 
+        Player.
         '''
         if isinstance(entity, Player.Shot):
             self.apply_damage(entity.get_damage())
@@ -380,11 +385,14 @@ class Asteroid(Entity):
         Entity.draw(self, surface)
         #Object2D.draw_phys(self, surface)
         
+HOLE_VELOCITY_MIN = 80
+HOLE_VELOCITY_MAX = 100
+HOLE_DIRECTION_SPREAD = math.pi/6 
 class Hole(Entity):
     '''
     Really avoid these.
     '''
-    def __init__(self, hp, position, velocity, orientation, ang_velocity):
+    def __init__(self, position, velocity, orientation, ang_velocity):
         '''
         Generates roughly circular
         geometry.
@@ -402,7 +410,7 @@ class Hole(Entity):
         
         # supermassive - important for the 'gravitational' force
         mass = 50000000.0
-        Entity.__init__(self, hp, tuple(geometry), position, velocity, orientation, ang_velocity, mass)
+        Entity.__init__(self, 1, tuple(geometry), position, velocity, orientation, ang_velocity, mass)
         
     def hit_by_entity(self, entity):
         '''
@@ -412,6 +420,11 @@ class Hole(Entity):
         entity.set_alive(False)
         return False
     
+    def draw(self, surface):
+        Object2D.draw_phys(self, surface)
+    
+POWERUP_VELOCITY_MIN = 200
+POWERUP_VELOCITY_MAX = 300
 class Powerup(Entity):
     '''
     Something beneficial to the Player
