@@ -40,9 +40,16 @@ class Entity(Object2D):
         self.frames = []
         self.curframe = 0
         
+    def add_frame(self, image, colorkey):
+        img = image.convert()
+        img.set_colorkey(colorkey)
+        self.frames.append(img)
         
     def get_cur_frame(self):
         return self.curframe
+    
+    def set_cur_frame(self, curframe):
+        self.curframe = curframe
     
     def get_cur_frame_image(self):
         return self.frames[self.curframe]
@@ -108,6 +115,7 @@ PLAYER_TURN_SPEED = math.pi # half a rotation per second
 PLAYER_SHOT_SPEED = 1000.0
 PLAYER_SHOT_DAMAGE = 10
 PLAYER_SHOT_TIME = 0.5
+PLAYER_SHIELD_TIME = 20.0
 class Player(Entity):
     '''
     The Entity controlled by the player;
@@ -124,11 +132,10 @@ class Player(Entity):
             
             Entity.__init__(self, 1, geometry, position, velocity, orientation, 0.0, 100.0)
             
-            img = pygame.image.load("obj/shot.png").convert()
-            img.set_colorkey((255,0,255))
-            self.frames.append(img)
+            self.add_frame(pygame.image.load("obj/shot.png"), (255,0,255))
             
             self.damage = damage
+            
             
         def get_damage(self):
             return self.damage
@@ -164,23 +171,23 @@ class Player(Entity):
         
         Entity.__init__(self, hp, geometry, position, velocity, orientation, 0.0, 1.0)
         
-        img = pygame.image.load("obj/ship.png").convert()
-        img.set_colorkey((255,0,255))
-        self.frames.append(img)
+        self.add_frame(pygame.image.load("obj/ship.png"), (255,0,255))
         
-        self.has_shield = False
+        self.regens_left = regens
+        self.invuln_time = 0.0
+        self.invuln_flash_time = 0.0
+        
         self.shot_time = PLAYER_SHOT_TIME
         self.shot_damage = PLAYER_SHOT_DAMAGE
         self.shot_speed = PLAYER_SHOT_SPEED
 
         self.shot_timer = 0.0
         
+        self.shield_time = 0.0
+        self.shield_timer = 0.0
+        
         self.turn_speed = math.pi
         self.thrust = PLAYER_THRUST
-        
-        self.regens_left = regens
-        self.invuln_time = 0.0
-        self.invuln_flash_time = 0.0
         
         self.visible = True
         
@@ -193,6 +200,8 @@ class Player(Entity):
         self.set_velocity(velocity)
         self.set_velocity(velocity)
         self.make_invuln()
+        self.shot_timer = 0.0
+        self.shield_timer = 0.0
         
     def make_invuln(self):
         self.set_collidable(False)
@@ -227,11 +236,26 @@ class Player(Entity):
         else:
             return None
         
+    def increase_shot_frequency(self):
+        self.shot_time *= 0.75
+        
     def update_shot_timer(self, dt):
         if self.can_shoot() == False:
             self.shot_timer -= dt
             if self.shot_timer < 0.0:
                 self.shot_timer = 0.0
+                
+    def give_shield(self):
+        self.shield_timer = self.shield_time
+        
+    def has_shield(self):
+        return self.shield_timer > 0
+    
+    def update_shield_timer(self, dt):
+        if self.has_shield == True:
+            self.shield_timer -= dt
+            if self.shield_timer < 0.0:
+                self.shield_timer = 0.0
                 
     def turn_clockwise(self):
         self.ang_velocity = self.turn_speed
@@ -264,13 +288,14 @@ class Player(Entity):
                 
         Entity.update(self, dt)
         self.update_shot_timer(dt)
+        self.update_shield_timer(dt)
         
     def hit_by_entity(self, entity):
         '''
         Player is damaged by Asteroids,
         Asteroid is destroyed by players
         '''
-        if isinstance(entity, Asteroid):
+        if isinstance(entity, Asteroid) == True:
             self.apply_damage(entity.get_damage())
             entity.set_alive(False)
             return True
@@ -278,20 +303,27 @@ class Player(Entity):
         '''
         Player is destroyed by Holes
         '''
-        if isinstance(entity, Hole):
+        if isinstance(entity, Hole) == True:
             self.set_alive(False)
+            return False
+        
+        '''
+        Player gains powerups
+        '''
+        if isinstance(entity, Powerup) == True:
+            entity.give_to(self)
+            entity.set_alive(False)
             return False
         
     def draw(self, surface):
         if self.visible == True:
             Entity.draw(self, surface)
-            #Object2D.draw_phys(self, surface)
-            
-        
-    #def draw(self, surface):
-    #    self.draw_phys(surface)
+
     
 ASTEROID_DAMAGE = 20
+ASTEROID_VELOCITY_MIN = 100
+ASTEROID_VELOCITY_MAX = 150
+ASTEROID_DIRECTION_SPREAD = math.pi/12 
 class Asteroid(Entity):
     '''
     Avoid these
@@ -305,6 +337,8 @@ class Asteroid(Entity):
         
         Entity.__init__(self, hp, geometry, position, velocity, orientation, ang_velocity, 1000.0)
         
+        self.add_frame(pygame.image.load("obj/aster.png"), (255,0,255))
+        
     def get_damage(self):
         return ASTEROID_DAMAGE
     
@@ -314,7 +348,8 @@ class Asteroid(Entity):
         Asteroid is destroyed
         '''
         if isinstance(entity, Player):
-            entity.apply_damage(self.get_damage())
+            if entity.has_shield() == False:
+                entity.apply_damage(self.get_damage())
             self.set_alive(False)
             return True
         
@@ -343,7 +378,7 @@ class Asteroid(Entity):
         
     def draw(self, surface):
         Entity.draw(self, surface)
-        Object2D.draw_phys(self, surface)
+        #Object2D.draw_phys(self, surface)
         
 class Hole(Entity):
     '''
@@ -376,6 +411,62 @@ class Hole(Entity):
         '''
         entity.set_alive(False)
         return False
+    
+class Powerup(Entity):
+    '''
+    Something beneficial to the Player
+    '''
+    def __init__(self, position, velocity, orientation, ang_velocity):
+
+        geometry = (Vector2D(-15, -15), Vector2D(15, -15), 
+                    Vector2D(15, 15), Vector2D(-15, 15))
+        
+        mass = 1.0
+        Entity.__init__(self, 1.0, geometry, position, velocity, orientation, ang_velocity, mass)
+        
+    def give_to(self, player):
+        '''
+        Specific powerups override to
+        implement their specific effect
+        '''
+        pass
+    
+    def hit_by_entity(self, entity):
+        '''
+        Only affects a Player entity
+        '''
+        if isinstance(entity, Player):
+            self.give_to(entity)
+            self.set_alive(False)
+            
+        if isinstance(entity, Hole):
+            self.set_alive(False)
+            
+        # does not interact physically
+        return False
+        
+    
+class ShieldPowerup(Powerup):
+    '''
+    Player is not damaged by Asteroids
+    '''
+    def __init__(self, position, velocity, orientation, ang_velocity):
+        Powerup.__init__(self, position, velocity, orientation, ang_velocity)
+        self.add_frame(pygame.image.load("obj/shield.png"), (255,0,255))
+        
+    def give_to(self, player):
+        player.give_shield()
+        
+class WeaponPowerup(Powerup):
+    '''
+    Player gets a better weapon
+    '''
+    def __init__(self, position, velocity, orientation, ang_velocity):
+        Powerup.__init__(self, position, velocity, orientation, ang_velocity)
+        self.add_frame(pygame.image.load("obj/weapon.png"), (255,0,255))
+        
+    def give_to(self, player):
+        player.increase_shot_frequency()
     
 class Explosion(Entity):
     '''

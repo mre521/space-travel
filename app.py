@@ -47,6 +47,13 @@ class AppState(object):
 
     # create pygame window with appropriate properties
     def setup_display(self):
+        
+        icon = pygame.image.load("obj/shipicon.png")
+        icon.set_colorkey((255,0,255))
+        
+        pygame.display.set_icon(icon)
+        pygame.display.set_caption("Space Travel")
+        
         flags = pygame.DOUBLEBUF
         if not self.WINDOWED:
             flags |= pygame.FULLSCREEN

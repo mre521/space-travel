@@ -59,7 +59,7 @@ class Object2D(object):
         # |      \|
         #  -------+
         #         bb_max
-        # bounding box - in world space
+        # bounding box - *in world space*
         self.bb_min = Vector2D()
         self.bb_max = Vector2D()
         

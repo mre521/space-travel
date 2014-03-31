@@ -153,12 +153,13 @@ class StarField(object):
 GAME_DIFF_EASY = 1
 GAME_DIFF_MEDIUM = 2
 GAME_DIFF_HARD = 3
-GAME_SETTINGS_EASY = {'distance': 1000, 'default_regens': 5, 'default_hp': 100, 'aster_freq': 1.0, 'hole_freq': 0.125, 'shield_freq': 0.25, 'weapon_freq': 0.25}
-GAME_SETTINGS_MEDIUM = {'distance': 2000, 'default_regens': 3, 'default_hp': 100, 'aster_freq': 3.0, 'hole_freq': 0.25, 'shield_freq': 0.125, 'weapon_freq': 0.125}
-GAME_SETTINGS_HARD = {'distance': 5000, 'default_regens': 2, 'default_hp': 100, 'aster_freq': 4.0, 'hole_freq': 0.30, 'shield_freq': 0.10, 'weapon_freq': 0.10 }
+GAME_SETTINGS_EASY = {'distance': 1200, 'default_regens': 5, 'default_hp': 100, 'aster_prob': 1.0/5, 'hole_prob': 1.0/20, 'shield_prob': 1.0/10, 'weapon_prob': 1.0/20}
+GAME_SETTINGS_MEDIUM = {'distance': 2400, 'default_regens': 3, 'default_hp': 100, 'aster_prob': 1.0/4, 'hole_prob': 1.0/15, 'shield_prob': 1.0/15, 'weapon_prob': 1.0/25}
+GAME_SETTINGS_HARD = {'distance': 4800, 'default_regens': 2, 'default_hp': 100, 'aster_prob': 1.0/3, 'hole_prob': 1.0/10, 'shield_prob': 1.0/20, 'weapon_prob': 1.0/30 }
 GAME_MODE_NORMAL = 1
 GAME_MODE_ENDURANCE = 2
-
+GAME_TRAVEL_VELOCITY = 10.0 # 10 units of distance per second
+GAME_SPAWN_PERIOD = 1.0 # spawn potential every second
 class Game(object):
     '''
     The whole reason for creating every other class.
@@ -185,17 +186,10 @@ class Game(object):
         
         self.entity_list = []
         
-        self.create_player()
-        self.spawn_player()
+        self.start_game()
         
-        self.game_over = False
-        self.distance_travelled = 0
-        
-        self.points = 0
-        
-        self.add_entity(entity.Asteroid(30, Vector2D(250, 410), Vector2D(0,0), 0.0, 0.0))
-        self.add_entity(entity.Asteroid(30, Vector2D(450, 390), Vector2D(0,0), 0.0, 0.0))
-       # self.add_entity(entity.Hole(30, Vector2D(500, 300), Vector2D(0,0), 0.0, 0.0))
+        self.add_entity(entity.ShieldPowerup(Vector2D(250, 410), Vector2D(0,0), 0.0, 0.0))
+        self.add_entity(entity.WeaponPowerup(Vector2D(300, 410), Vector2D(0,0), 0.0, 0.0))
     
     def default_settings(self):
         self.settings = Game.Settings({'difficulty': GAME_DIFF_MEDIUM, 'mode': GAME_MODE_NORMAL})
@@ -216,6 +210,80 @@ class Game(object):
             self.settings.add(GAME_SETTINGS_MEDIUM)
         elif diff == GAME_DIFF_HARD:
             self.settings.add(GAME_SETTINGS_HARD)
+            
+    def start_game(self):
+        self.create_player()
+        self.spawn_player()
+        
+        self.distance_travelled = 0
+        self.distance = self.settings.distance
+        self.spawn_timer = 1.0
+        self.points = 0
+        
+        self.game_over = False
+        
+    def random_vertical_position(self):
+        return random.random() * self.screen_rect.height
+    
+    def probability_event(self, probability):
+        rand = random.random()
+        if rand <= probability:
+            return True
+        
+        return False
+    
+    def random_float(self, min, max):
+        return min + random.random()*(max-min)
+    
+    def spawn_asteroid(self):
+        position_x = self.screen_rect.width + 100
+        position_y = self.random_vertical_position()
+        position = Vector2D(position_x, position_y)
+        
+        v_min = entity.ASTEROID_VELOCITY_MIN
+        v_max = entity.ASTEROID_VELOCITY_MAX
+        
+        speed = self.random_float(v_min, v_max)
+        
+        velocity = Vector2D(-1.0, 0.0).rotate(self.random_float(-entity.ASTEROID_DIRECTION_SPREAD, entity.ASTEROID_DIRECTION_SPREAD)).scale(speed)
+        
+        ent = entity.Asteroid(30, position, velocity, 0.0, 0.0)
+        self.add_entity(ent)
+        
+    def spawn_hole(self):
+        pass
+    def spawn_shield(self):
+        pass
+    def spawn_weapon(self):
+        pass
+    
+    def update_spawner(self, dt):
+        self.spawn_timer -= dt
+        if self.spawn_timer <= 0.0:
+            self.spawn_timer += GAME_SPAWN_PERIOD
+            
+            settings = self.settings
+            
+            spawn_asteroid = self.probability_event(settings.aster_prob)
+            spawn_hole = self.probability_event(settings.hole_prob)
+            spawn_shield = self.probability_event(settings.shield_prob)
+            spawn_weapon = self.probability_event(settings.weapon_prob)
+            
+            if spawn_asteroid == True:
+                # spawn an asteroid
+                self.spawn_asteroid()
+            if spawn_hole == True:
+                # spawn a black hole
+                self.spawn_hole()
+            if spawn_shield == True:
+                # spawn a shield powerup
+                self.spawn_shield()
+            if spawn_weapon == True:
+                # spawn a weapon powerup
+                self.spawn_weapon()
+                
+    def update_distance(self, dt):
+        self.distance += GAME_TRAVEL_VELOCITY*dt
             
     def create_player(self):
         self.player = entity.Player(self.settings.default_hp, self.settings.default_regens, Vector2D(self.screen_rect.width/4, self.screen_rect.height/2), Vector2D(0,0), 0.0)
@@ -252,7 +320,7 @@ class Game(object):
         self.player_explosion = self.show_explosion(player.get_position(), player.get_velocity(), player.get_orientation(), player.get_ang_velocity())
         
     def is_player_finished_exploding(self):
-        return True
+        return False
 
     def show_explosion(self, position, velocity, orientation, ang_velocity):
         expl = entity.Explosion(position, velocity, orientation, ang_velocity)
@@ -336,12 +404,13 @@ class Game(object):
                     self.hole_gravity_force(entity1, entity2)
                     
         '''
-        Do the spawning
+        Do the spawning and distance updates
         '''
         if self.player.get_alive() == True:
             # spawn Asteroids, Holes and Powerups
             # when the player is alive
-            pass
+            self.update_spawner(frametime)
+            self.update_distance(frametime)
         else:
             # spawn the player when they finish exploding
             if self.is_player_finished_exploding():

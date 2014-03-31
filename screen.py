@@ -456,7 +456,7 @@ class TextScreen(Screen):
                 self.go_back()
         
 
-TITLE_FONT = pygame.font.Font("fonts/Rase-GPL-Bold.otf", 40)
+TITLE_FONT = pygame.font.Font("fonts/Rase-GPL-Bold.otf", 50)
 class TitleScreen(Screen):
     '''
     Does the game's title screen.
