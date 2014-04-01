@@ -36,7 +36,7 @@ class BGM(object):
     def play(self, volume):
         pygame.mixer.music.load(self.filename)
         pygame.mixer.music.set_volume(volume)
-       # pygame.mixer.music.play(-1)
+        pygame.mixer.music.play(-1)
         pygame.mixer.music.set_endevent(BGM_STOPPED)
         
     def pause(self):
@@ -88,23 +88,33 @@ class RenderedText(object):
     '''
     def __init__(self, font, text, color, center_x=False, center_y=False, antialias=True, underline=False, bold=False, italic=False, background=None):
         self.font = font
-        self.text = text
         
-        font.set_underline(underline)
-        font.set_bold(bold)
-        font.set_italic(italic)
+        self.antialias = antialias
+        self.underline = underline
+        self.bold = bold
+        self.italic = italic
+        self.background = background
+        self.color = color
         
-        # required for font.render to function properly when None is
-        # given for background
-        if background == None:
-            self.surface = font.render(text, antialias, color).convert_alpha()
-        else:
-            self.surface = font.render(text, antialias, color, background).convert()
+        self.set_text(text)
             
-        
         self.set_position((0,0))
         self.set_center_x(center_x)
         self.set_center_y(center_y)
+        
+    def set_text(self, text):
+        self.text = text
+        font = self.font
+        font.set_underline(self.underline)
+        font.set_bold(self.bold)
+        font.set_italic(self.italic)
+        
+        # required for font.render to function properly when None is
+        # given for background
+        if self.background == None:
+            self.surface = font.render(text, self.antialias, self.color).convert_alpha()
+        else:
+            self.surface = font.render(text, self.antialias, self.color, self.background).convert()
         
         
     def get_width(self):
@@ -529,7 +539,7 @@ class TitleScreen(Screen):
             
     def start_game(self):
         gamescreen = InGameScreen(self.width, self.height, self.app_parent, self.display)
-        gamescreen.start_game(game.GAME_DIFF_MEDIUM, game.GAME_MODE_NORMAL)
+        gamescreen.start_game(game.GAME_DIFF_MEDIUM, game.GAME_MODE_ENDURANCE)
         self.app_parent.screen_open(gamescreen)
             
     def show_story(self):
@@ -591,7 +601,7 @@ class InGameScreen(Screen):
         self.pause_menu.add_member(Menu("Quit to Title", InGameScreen.quit_title))
         self.pause_menu.set_position((self.display.get_width()/2, self.display.get_height()/3))
         
-        self.set_paused(True)
+        self.set_paused(False)
         
     def start_game(self, difficulty, mode):
         self.game = game.Game(pygame.Rect(0, 0, self.display.get_width(), self.display.get_height()),difficulty, mode)
@@ -604,18 +614,24 @@ class InGameScreen(Screen):
     
     def toggle_paused(self):
         self.paused = not self.paused
-        
+    
+    '''    
     def activate(self):
         Screen.activate(self)
         
     def deactivate(self):
         Screen.deactivate(self)
+    '''
         
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
             self.key_down(event.key)
         elif event.type == pygame.KEYUP:
             self.key_up(event.key)
+        elif event.type == game.GAME_SHOW_HISCORES:
+            self.quit_title()
+        elif event.type == game.GAME_SHOW_TITLE:
+            self.quit_title()
 
     def key_down(self, key):
         if key == pygame.K_ESCAPE:
@@ -653,3 +669,22 @@ class InGameScreen(Screen):
         
     def quit_title(self):
         self.app_parent.screen_close()
+
+class HiScoresScreen(TextScreen):
+    '''
+    Allows players to brag about their scores
+    '''
+    def __init__(self, width, height, app, display):
+        TextScreen.__init__(self, width, height, app, display)
+        self.load_scores()
+        
+        
+    def load_scores(self):
+        pass
+        
+    def add_game_entry(self, game):
+        '''
+        Add an entry into the hiscores from
+        the game just played
+        '''
+        pass

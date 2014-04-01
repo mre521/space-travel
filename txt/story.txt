@@ -9,9 +9,8 @@ detrimental to your ship, such as asteroids and black holes.
 These objects are not able to be excluded from the tunnel.
 
 Luckily, your ship is armed with an energy weapon which can break 
-asteroids into smaller, less harmful pieces. Black holes, however, 
-devour your shots and pull you in gravitationally so they must be
-avoided at all cost.
+apart asteroids. Black holes, however, devour your shots and pull 
+you in gravitationally, so they must be avoided at all cost.
 
 To aid you in your journey, the destination planet sends various
 ship upgrades with the potential to upgrade your weapon or give 

@@ -553,15 +553,18 @@ class Dynamics(object):
         obj_list2 = []
         
         This function is a major bottleneck.
+        The outer loop is at least O(n^2) but
+        the entire function is worse.
         '''
         obj_list1 = objects
         obj_list2 = list(objects)
         for obj1 in obj_list1:
             '''
             Removing the first item in obj_list2
-            avoids checking if objects collide with
-            themselves and also if two different
-            objects have already been checked.
+            each time avoids checking if objects 
+            collide with themselves and also if 
+            two different objects have already 
+            been checked.
             '''
             obj_list2.pop(0)
             for obj2 in obj_list2:
