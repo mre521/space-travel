@@ -18,11 +18,18 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # imports
+import os
+
 import pygame.display
 import pygame.time
 import pygame.event
 
 import screen
+
+# so we can have a centered window
+# http://www.pygame.org/wiki/FrequentlyAskedQuestions
+os.environ['SDL_VIDEO_CENTERED'] = '1'
+
         
 class AppState(object):
     DISPLAY_WIDTH = 800

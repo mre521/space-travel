@@ -407,7 +407,7 @@ class Game(object):
         
     def update_weapon_display(self):
         if self.player.has_weapon_upgrade() == True:
-            self.weapon_text.set_value(self.player.get_weapon_upgrades() + " times")
+            self.weapon_text.set_value(str(self.player.get_weapon_upgrades()) + " times")
             self.weapon_text.set_visible(True)
         else:
             self.weapon_text.set_visible(False)
