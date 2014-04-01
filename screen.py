@@ -165,6 +165,10 @@ MENU_MEMBER_FONT = pygame.font.Font("fonts/NEW ACADEMY.ttf", 40)
 MENU_TITLE_COLOR = (255,255,255)
 MENU_MEMBER_COLOR = (255,127,255)
 class Menu(object):
+    '''
+    Implements a text-based menu which
+    can be navigated
+    '''
     def __init__(self, title, enter_function=None, enter_and_call=False, title_font=MENU_TITLE_FONT, member_font=MENU_MEMBER_FONT):
         self.title = title
         self.enter_function = enter_function
@@ -407,7 +411,7 @@ class TextScreen(Screen):
     def __init__(self, width, height, app, display):
         Screen.__init__(self, width, height, app, display)
         
-        self.title = "Text Screen"
+        self.set_font(TEXT_FONT)
         
         self.set_scroll(False)
         self.set_scroll_rate(0.0)
@@ -430,14 +434,18 @@ class TextScreen(Screen):
         self.text = text
         if len(text) > 0:
             self.generate_lines()
+            
+    def set_font(self, font):
+        self.font = font
         
     def set_text_color(self, color):
         self.color = color
         
     def generate_lines(self):
         text_lines = self.text.split('\n')
+        self.rendered_lines = []
         for line in text_lines:
-            rendered = RenderedText(TEXT_FONT, line, self.color)
+            rendered = RenderedText(self.font, line, self.color)
             self.rendered_lines.append(rendered)
             
     def set_text_position(self, position):
@@ -541,6 +549,9 @@ class TitleScreen(Screen):
         Screen.deactivate(self)
     
     def handle_event(self, event):
+        '''
+        Handle navigation of the main menu
+        '''
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_DOWN or event.key == pygame.K_s:
                 self.menu.select_next()
@@ -552,17 +563,29 @@ class TitleScreen(Screen):
                 self.menu_exit()
                 
     def menu_prev(self):
+        '''
+        Select previous item
+        '''
         self.menu.select_prev()
     
     def menu_next(self):
+        '''
+        Select next item
+        '''
         self.menu.select_next()
         
     def menu_enter(self):
+        '''
+        Enter one level
+        '''
         menu = self.menu.enter(self)
         if type(menu) == type(self.menu):
             self.menu = menu
 
     def menu_exit(self):
+        '''
+        Go up one level
+        '''
         menu = self.menu.exit()
         if type(menu) == type(self.menu):
             self.menu = menu
@@ -589,11 +612,18 @@ class TitleScreen(Screen):
         self.game_mode = game.GAME_MODE_ENDURANCE
         
     def start_game(self):
+        '''
+        Start game with selected mode and
+        difficulty
+        '''
         gamescreen = InGameScreen(self.width, self.height, self.app_parent, self.display)
         gamescreen.start_game(self.game_diff, self.game_mode)
         self.app_parent.screen_open(gamescreen)
             
     def show_story(self):
+        '''
+        Show the game story
+        '''
         story = TextScreen(self.width, self.height, self.app_parent, self.display)
         story.set_text_color((255,255,255))
         
@@ -607,6 +637,9 @@ class TitleScreen(Screen):
         self.app_parent.screen_open(story)
         
     def show_controls(self):
+        '''
+        Show the controls information
+        '''
         controls_screen = TextScreen(self.width, self.height, self.app_parent, self.display)
         controls_screen.set_text_color((255,255,255))
         
@@ -620,10 +653,16 @@ class TitleScreen(Screen):
         self.app_parent.screen_open(controls_screen)
         
     def show_hiscores(self):
+        '''
+        Open the hiscores
+        '''
         hiscores_screen = HiscoresScreen(self.width, self.height, self.app_parent, self.display)
         self.app_parent.screen_open(hiscores_screen)
             
     def show_credits(self):
+        '''
+        Roll the credits
+        '''
         credits_screen = TextScreen(self.width, self.height, self.app_parent, self.display)
         credits_screen.set_text_color((255,255,255))
         credits_screen.set_scroll(True)
@@ -640,6 +679,9 @@ class TitleScreen(Screen):
         self.app_parent.screen_open(credits_screen)
     
     def quit_game(self):
+        '''
+        Get out of this program
+        '''
         self.app_parent.screen_close()
                 
     def draw(self):
@@ -682,16 +724,12 @@ class InGameScreen(Screen):
     
     def toggle_paused(self):
         self.paused = not self.paused
-    
-    '''    
-    def activate(self):
-        Screen.activate(self)
-        
-    def deactivate(self):
-        Screen.deactivate(self)
-    '''
         
     def handle_event(self, event):
+        '''
+        Detects key presses and when
+        the Game wants to show Hiscores.
+        '''
         if event.type == pygame.KEYDOWN:
             self.key_down(event.key)
         elif event.type == pygame.KEYUP:
@@ -702,6 +740,10 @@ class InGameScreen(Screen):
             self.quit_title()
 
     def key_down(self, key):
+        '''
+        Notify game of key down,
+        or open pause menu
+        '''
         if key == pygame.K_ESCAPE:
             self.toggle_paused()
             
@@ -712,6 +754,9 @@ class InGameScreen(Screen):
             self.game.key_down(key)
     
     def key_up(self, key):
+        '''
+        Notify game of key up
+        '''
         if self.paused == False:
             self.game.key_up(key)
         
@@ -724,10 +769,17 @@ class InGameScreen(Screen):
     
     
     def update(self, frametime):
+        '''
+        Update game as long as it's not paused
+        '''
         if self.paused == False:
             self.update_game(frametime)
     
     def draw(self):
+        '''
+        Draw game and pause menu
+        if its open.
+        '''
         Screen.draw(self)
         self.draw_game()
         if self.paused == True:
@@ -741,13 +793,22 @@ class InGameScreen(Screen):
         adding a new entry for the game just played.
         '''
         hiscores_screen = HiscoresScreen(self.width, self.height, self.app_parent, self.display)
-        hiscores_screen.add_game_entry(self.game)
+        if self.game.get_game_won() == True:
+            hiscores_screen.add_game_entry(self.game)
         self.app_parent.screen_close(hiscores_screen)
         
     def quit_title(self):
+        '''
+        Go to title screen
+        '''
         self.app_parent.screen_close()
 
-HISCORES_ENTER_FONT = pygame.font.Font("fonts/NEW ACADEMY.ttf", 20)
+HISCORES_FONT = pygame.font.Font("fonts/NEW ACADEMY.ttf", 18)
+HISCORES_TITLE_FONT = pygame.font.Font("fonts/Rase-GPL-Bold.otf", 50)
+HISCORES_TITLE_COLOR = (127,255,255)
+HISCORES_TEXT_COLOR = (255,255,0)
+HISCORES_SCROLL_DELAY = 5.0 # 5 seconds delay
+HISCORES_SCROLL_RATE = 0.5 # 0.5 lines per second
 class HiscoresScreen(TextScreen):
     '''
     Allows players to brag about their scores
@@ -772,13 +833,19 @@ class HiscoresScreen(TextScreen):
         
         @staticmethod
         def from_file(file_obj):
-            name = file_obj.read_line().replace('\n','')
-            distance = float(file_obj.read_line().replace('\n',''))
-            points = int(file_obj.read_line().replace('\n',''))
+            '''
+            Create a ScoreEntry from given file
+            '''
+            name = file_obj.readline().replace('\n','')
+            distance = float(file_obj.readline().replace('\n',''))
+            points = int(file_obj.readline().replace('\n',''))
             
             return HiscoresScreen.ScoreEntry(name, distance, points)
         
         def to_file(self, file_obj):
+            '''
+            Save this ScoreEntry to given file
+            '''
             file_obj.write(self.get_name() + '\n')
             file_obj.write(self.get_distance() + '\n')
             file_obj.write(self.get_points() + '\n')
@@ -787,17 +854,28 @@ class HiscoresScreen(TextScreen):
         TextScreen.__init__(self, width, height, app, display)
         
         self.score_entries = []
+        self.title = "Hiscores"
+        self.title_text = RenderedText(HISCORES_TITLE_FONT, self.title, HISCORES_TITLE_COLOR, True)
+        self.title_text.set_position((self.width/2, self.height/20))
         
         try:
             self.load_scores()
         except:
             print "No hiscores yet."
             
+        self.set_font(HISCORES_FONT)
+            
         self.create_scores_text()
             
         self.adding_entry = False
+        self.scroll_pause_timer = HISCORES_SCROLL_DELAY # pause for 4 seconds before starting to scroll
+        self.set_scroll_rate(HISCORES_SCROLL_RATE) # 1 line per second
+        self.set_scroll(False)
             
         self.set_bgm("BGM/stardstm.mod")
+        self.set_bg_image("BG/Hiscores.jpg")
+        self.set_bg_scaled(True)
+        self.set_should_draw_bg(True)
         
     def load_scores(self):
         '''
@@ -806,15 +884,20 @@ class HiscoresScreen(TextScreen):
         
         scores = open("hiscores.dat", "r")
         
+        self.score_entries = []
+        
         try:
             while True:
                 self.score_entries.append(HiscoresScreen.ScoreEntry.from_file(scores))
         except:
-            pass
+            pass 
         
         scores.close()
         
     def save_scores(self):
+        '''
+        Records hiscores to file.
+        '''
         scores = open("hiscores.dat", "w")
         
         for entry in self.score_entries:
@@ -832,14 +915,17 @@ class HiscoresScreen(TextScreen):
         
         enter_position = (self.width/2, self.height/2)
         
-        self.enter_name_text = RenderedText(HISCORES_ENTER_FONT, "Please enter your name: ", (255,255,255), True, True)
+        self.enter_name_text = RenderedText(HISCORES_FONT, "Please enter your name: ", HISCORES_TEXT_COLOR, True, True)
         self.enter_name_text.set_position(enter_position)
         
-        self.name_text = RenderedText(HISCORES_ENTER_FONT, "", (255,255,255), True, True)
+        self.name_text = RenderedText(HISCORES_FONT, "", HISCORES_TEXT_COLOR, True, True)
         self.name_text.set_position((enter_position[0], enter_position[1]+self.enter_name_text.get_height()))
         self.name_string = ""
         
     def handle_event(self, event):
+        '''
+        Handle the keyboard
+        '''
         if self.adding_entry == True:
             if event.type == pygame.KEYDOWN: 
                 mods = pygame.key.get_mods()
@@ -852,18 +938,22 @@ class HiscoresScreen(TextScreen):
                             # make shift for letters work
                             key -= 32
                         if key >= 91 and key <= 94:
-                            # some symbols
+                            # and for some symbols as well
                             key += 32
                             
+                    # actually type the processed key
                     self.type_name(key)
         else:
             TextScreen.handle_event(self, event)
             
     def type_name(self, key):
+        '''
+        handle keyboard when entering
+        a new hiscore
+        '''
         if key == pygame.K_RETURN:
             entry = HiscoresScreen.ScoreEntry(self.name_string, self.game.get_final_distance(), self.game.get_final_points())
             self.score_entries.append(entry)
-            self.sort_scores()
             self.save_scores()
             self.create_scores_text()
             self.adding_entry = False
@@ -878,33 +968,58 @@ class HiscoresScreen(TextScreen):
             self.name_text.set_text(self.name_string)
             self.name_text.set_center_x(True)
             
-    def sort_scores(self):
-        pass
-            
     def create_scores_text(self):
+        '''
+        Creates the rendered text lines
+        for the loaded hiscores.
+        '''
         rank = 1
         text = ""
-        for entry in self.score_entries:
-            entry_text = "#" + str(rank) + ". " + entry.get_name() + " travelled " + entry.get_distance() + ", scored " + entry.get_points() + " points.\n"
-            text += entry_text
-            rank += 1
+        if len(self.score_entries) > 0:
+            for entry in self.score_entries:
+                entry_text = "#" + str(rank) + ". " + entry.get_name() + " traveled a distance of " + entry.get_distance() + " and scored " + entry.get_points() + " points.\n"
+                text += entry_text
+                rank += 1
+        else:
+            text = "Nothing here..."
         
-        self.set_text_color((255,255,255))
+        self.set_text_color(HISCORES_TEXT_COLOR)
         self.set_text(text)
-        self.set_text_position((50, 50))
+        self.set_text_position((self.width/40, self.height/6))
         
         
     def add_score_update(self, dt):
         pass
     
     def add_score_draw(self, surface):
+        '''
+        Draw the text when entering a new
+        hiscore.
+        '''
         self.enter_name_text.draw(surface)
         self.name_text.draw(surface)
     
     def scores_update(self, dt):
+        '''
+        Update the screen when not entering a
+        new hiscore.
+        '''
         TextScreen.update(self, dt)
+        # update scroll pause timer and
+        # turn on scrolling when it expires
+        if self.scroll_pause_timer > 0.0:
+            self.scroll_pause_timer -= dt
+            if self.scroll_pause_timer <= 0:
+                self.scroll_pause_timer = 0.0
+                self.set_scroll(True)
     
     def scores_draw(self, surface):
+        '''for entry in self.score_entries:
+                entry_text = "#" + str(rank) + ". " + entry.get_name() + " traveled a distance of " + entry.get_distance() + " and scored " + entry.get_points() + " points.\n"
+                text += entry_text
+                rank += 1
+        Show the hiscores on the screen
+        '''
         TextScreen.draw_text(self, surface)
     
     def update(self, dt):
@@ -915,11 +1030,14 @@ class HiscoresScreen(TextScreen):
             self.scores_update(dt)
             
     def draw(self):
-        self.display.fill((0,0,0))
-
+        self.bg.draw(self.display)
+        
         if self.adding_entry:
             self.add_score_draw(self.display)
         else:
             self.scores_draw(self.display)
+            
+        # draw title on top of everything
+        self.title_text.draw(self.display)
             
         pygame.display.flip()

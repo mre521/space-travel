@@ -33,7 +33,15 @@ import screen
 STAR_VELOCITY_MEAN = -2000
 STAR_SIZE = 6.0
 class StarField(object):
+    '''
+    Attempts to appear as background
+    of stars which have been flown by
+    '''
     class Star(object):
+        '''
+        Helper for StarField,
+        stores state for one star
+        '''
         def __init__(self):
             self.position = Vector2D()
             self.velocity = Vector2D()
@@ -44,27 +52,51 @@ class StarField(object):
             return self.position
         
         def get_position_horiz(self):
+            '''
+            get horizontal position
+            '''
             return self.position.get_x()
         
         def set_position_horiz(self, x):
+            '''
+            set horizontal position
+            '''
             self.position.set_x(x)
             
         def set_position_vert(self, y):
+            '''
+            set vertical position
+            '''
             self.position.set_y(y)
             
         def set_velocity_horiz(self, x):
+            '''
+            set vertical velocity
+            '''
             self.velocity.set_x(x)
             
         def set_velocity_vert(self, x):
+            '''
+            set vertical velocity
+            '''
             self.velocity.set_x(x)
         
         def set_velocity(self, velocity):
+            '''
+            set velocity as Vector2D
+            '''
             self.velocity.set_vect(velocity)
             
         def set_size(self, size):
+            '''
+            set how large the star appears
+            '''
             self.size = size
      
         def get_size(self):
+            '''
+            get how large
+            '''
             return self.size
         
         def set_color(self, color):
@@ -74,6 +106,9 @@ class StarField(object):
             return self.color
          
         def update(self, dt):
+            '''
+            just 'integrate' for position
+            '''
             self.position.add(self.velocity.scaled(dt))
             
     def __init__(self, width, height, num_stars):
@@ -82,7 +117,6 @@ class StarField(object):
         self.num_stars = num_stars
         
         self.star_velocity = STAR_VELOCITY_MEAN
-        
         
         '''
         Create the initial field
@@ -151,12 +185,18 @@ class StarField(object):
         self.random_color(star)
         
     def update(self, dt):
+        '''
+        Progress the StarField
+        '''
         for star in self.stars:
             star.update(dt)
             if star.get_position_horiz() < 0:
                 self.wrap_star(star)
             
     def draw(self, surface):
+        '''
+        Show all the Stars
+        '''
         for star in self.stars:
             pos = star.get_position().get_int()
             pygame.draw.circle(surface, star.get_color(), pos, int(star.get_size()), 0)
@@ -193,9 +233,15 @@ class InfoDisplay(object):
             return self.visible
         
         def create_static(self, text):
+            '''
+            Create static, pre-rendered text
+            '''
             return screen.RenderedText(INFODISPLAY_FONT, text, INFO_TEXT_COLOR, False, True)
         
         def set_value(self, value):
+            '''
+            set the value displayed
+            '''
             self.value = value
             self.value_text.set_text(str(value))
             
@@ -226,6 +272,10 @@ class InfoDisplay(object):
         self.update_text_positions()
         
     def update_text_positions(self):
+        '''
+        set the position of all added
+        texts appropriately
+        '''
         pos_x = self.position[0]
         pos_y = self.position[1]
         for text in self.text_list:
@@ -234,6 +284,9 @@ class InfoDisplay(object):
                 pos_y += text.get_height()
         
     def draw(self, surface):
+        '''
+        Show all info
+        '''
         for text in self.text_list:
             if text.get_visible() == True:
                 text.draw(surface)
@@ -251,7 +304,6 @@ class HPBar(object):
         
         self.hp_value = 0
         self.hp_max = float(max_hp)
-        pass
     
     def set_position(self, position):
         '''
@@ -465,7 +517,7 @@ class Game(object):
         velocity = Vector2D(-1.0, 0.0).rotate(self.random_float(-entity.ASTEROID_DIRECTION_SPREAD, entity.ASTEROID_DIRECTION_SPREAD)).scale(speed)
         ang_velocity = self.random_float(-entity.ASTEROID_DIRECTION_SPREAD, entity.ASTEROID_DIRECTION_SPREAD)
         
-        ent = entity.Asteroid(30, position, velocity, 0.0, ang_velocity)
+        ent = entity.Asteroid(entity.ASTEROID_HP, position, velocity, 0.0, ang_velocity)
         self.add_entity(ent)
         
     def spawn_hole(self):
@@ -566,12 +618,21 @@ class Game(object):
   
             
     def show_player_explosion(self):
+        '''
+        explode the player
+        '''
         self.player_explosion = self.show_explosion(self.player)
         
     def is_player_finished_exploding(self):
+        '''
+        check if the player has exploded
+        '''
         return self.player_explosion.finished()
 
     def show_explosion(self, ent):
+        '''
+        explode an entity
+        '''
         expl = entity.Explosion(ent.get_position(), ent.get_velocity(), ent.get_orientation(), ent.get_ang_velocity())
         self.add_entity(expl)
         return expl
@@ -582,7 +643,7 @@ class Game(object):
         '''
         if entity != None:
             self.entity_list.append(entity)
-            
+
     def add_entity_bottom(self, entity):
         '''
         inserts a new entity below all others
@@ -591,6 +652,9 @@ class Game(object):
             self.entity_list.insert(0, entity)
     
     def key_down(self, key):
+        '''
+        Handle all the keypresses
+        '''
         if self.game_over == False:
             if key == pygame.K_w or key == pygame.K_UP:
                 self.player.accelerate(True)
@@ -606,8 +670,10 @@ class Game(object):
                     self.player.set_alive(False)
                     self.player_destroyed()
                     self.entity_list.remove(self.player)
+            '''
             elif key == pygame.K_p: # win the game
                 self.distance_travelled = self.distance
+            '''
         else:
             if key == pygame.K_RETURN:
                 if self.settings.mode == GAME_MODE_NORMAL or self.settings.mode == GAME_MODE_ENDURANCE:
@@ -616,6 +682,9 @@ class Game(object):
                     pygame.event.post(pygame.event.Event(GAME_SHOW_TITLE))
     
     def key_up(self, key):
+        '''
+        Handle all the key unpresses
+        '''
         if self.game_over == False:
             if key == pygame.K_w or key == pygame.K_UP:
                 self.player.accelerate(False)
@@ -627,6 +696,9 @@ class Game(object):
                 self.shooting = False
                 
     def player_fire_weapon(self):
+        '''
+        shoot the gun
+        '''
         if self.shooting:
             if self.player.can_shoot():
                 self.add_entity(self.player.shoot())
@@ -645,6 +717,9 @@ class Game(object):
 
     # http://en.wikipedia.org/wiki/Newton's_law_of_universal_gravitation
     def hole_gravity_force(self, hole, entity):
+        '''
+        Simulate black hole gravity force
+        '''
         if entity.get_collidable() == False:
             return
 
@@ -711,9 +786,16 @@ class Game(object):
         y += self.game_over_message3.get_height()
         
     def get_final_points(self):
+        '''
+        get points at the end of the game
+        '''
         return self.final_points
     
     def get_final_distance(self):
+        '''
+        get distance traveled at the 
+        end of the game
+        '''
         return self.final_distance
     
     def get_game_mode(self):
@@ -721,6 +803,20 @@ class Game(object):
     
     def get_game_difficulty(self):
         return self.settings.difficulty
+    
+    def get_game_won(self):
+        '''
+        get whether the game was won
+        '''
+        if self.settings.mode == GAME_MODE_NORMAL:
+            if self.get_final_distance() >= self.distance:
+                return True
+            else:
+                return False
+        elif self.settings.mode == GAME_MODE_ENDURANCE:
+            return True
+        else:
+            return False
         
     def game_over_draw(self, surface):
         '''
@@ -732,6 +828,9 @@ class Game(object):
         self.game_over_message3.draw(surface)
 
     def update(self, frametime):
+        '''
+        Update EVERYTHING
+        '''
         self.star_field.update(frametime)
         
         self.dynamics.resolve_collisions(self.entity_list, frametime)

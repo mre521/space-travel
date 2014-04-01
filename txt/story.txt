@@ -6,7 +6,7 @@ The distance you travel depends on whether you are assigned to an
 "Easy", "Medium", or "Hard" trip. An interstellar tunnel created by 
 your home world keeps you on course and allows near light-speed travel. 
     
-The tunnel is not perfect,however. Along the way you encounter 
+The tunnel is not perfect, however. Along the way you encounter 
 obstacles that would be detrimental to your ship, such as asteroids 
 and black holes. These objects are not able to be excluded from the 
 tunnel. The amount of these obstacle also depends on difficulty.

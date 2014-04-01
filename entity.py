@@ -46,25 +46,40 @@ class Entity(Object2D):
         self.anim_loop_num = 0
         
     def add_frame(self, image, colorkey):
+        '''
+        Insert one frame of animation
+        '''
         img = image.convert()
         img.set_colorkey(colorkey)
         self.frames.append(img)
         
     def get_cur_frame(self):
+        '''
+        Current frame index
+        '''
         return self.curframe
     
     def set_cur_frame(self, curframe):
         self.curframe = curframe
     
     def get_cur_frame_image(self):
+        '''
+        Current frame surface
+        '''
         return self.frames[self.curframe]
     
     def set_frame_time(self, frame_time):
+        '''
+        set time between frames
+        '''
         self.frame_time = frame_time
         if self.frametimer > frame_time:
             self.frametimer = frame_time
             
     def go_next_frame(self):
+        '''
+        Animate the entity
+        '''
         self.curframe += 1
         if self.curframe == len(self.frames):
             if self.anim_loop_num < self.anim_num_loops:
@@ -75,18 +90,30 @@ class Entity(Object2D):
 
             
     def set_animate(self, animate):
+        '''
+        Set whether to animate this entity
+        '''
         self.animate = animate
         if self.animate == True:
             self.loop_num = 0
             
     def set_animation_loops(self, loops):
+        '''
+        How many time the animation should
+        loop.
+        '''
         self.anim_num_loops = loops
             
     def get_is_animating(self):
+        '''
+        Is the animation playing?
+        '''
         return self.animate
             
     def rotate_image(self, surface, radians):
-        #center = surface.center
+        '''
+        Helper to rotate surfaces
+        '''
         new = pygame.transform.rotate(surface, 180 * -radians / math.pi)
         return new
     
@@ -104,10 +131,16 @@ class Entity(Object2D):
         return self.alive
     
     def apply_damage(self, damage, source):
+        '''
+        Apply damage from source entity
+        '''
         self.hp -= damage
         self.set_alive(self.hp > 0)
         
     def update(self, dt):
+        '''
+        Update state of this entity
+        '''
         Object2D.update(self, dt)
         
         if self.animate == True:
@@ -117,6 +150,9 @@ class Entity(Object2D):
                 self.frametimer += self.frame_time
         
     def draw(self, surface):
+        '''
+        Draw the entity
+        '''
         if len(self.frames) > 0:
             image = self.rotate_image(self.get_cur_frame_image(), self.get_orientation())
             center = image.get_rect().center
@@ -128,6 +164,9 @@ class Entity(Object2D):
         #self.draw_phys(surface)
         
     def hit_by(self, obj, collision):
+        '''
+        Handle Entity-Entity collisions
+        '''
         do_collision = True
         if isinstance(obj, Entity):
             do_collision = self.hit_by_entity(obj)
@@ -150,7 +189,7 @@ PLAYER_INVULN_FLASH_PERIOD = 0.0625
 PLAYER_THRUST = 30000.0
 PLAYER_TURN_SPEED = 2*math.pi # half a rotation per second
 PLAYER_SHOT_SPEED = 1000.0
-PLAYER_SHOT_DAMAGE = 10
+PLAYER_SHOT_DAMAGE = 20
 PLAYER_SHOT_TIME = 0.5
 PLAYER_SHIELD_TIME = 20.0
 pygame.mixer.init()
@@ -183,6 +222,10 @@ class Player(Entity):
             return self.damage
         
         def get_parent(self):
+            '''
+            Get the Player that fired
+            this Shot
+            '''
             return self.parent
         
         def hit_by_entity(self, entity):
@@ -203,7 +246,6 @@ class Player(Entity):
             
         def draw(self, surface):
             Entity.draw(self, surface)
-            #Object2D.draw_phys(self, surface)
         
     def __init__(self, hp, regens, position, velocity, orientation):
         geometry = (Vector2D(-20, 20), Vector2D(10, 15),
@@ -244,11 +286,16 @@ class Player(Entity):
         self.accelerate(False)
         
     def respawn(self, hp, position, velocity, orientation):
+        '''
+        Spawn this Player and reset its
+        state
+        '''
         self.alive = True
         self.hp = hp
         self.set_position(position)
         self.set_velocity(velocity)
-        self.set_velocity(velocity)
+        self.set_orientation(0.0)
+        self.set_ang_velocity(0.0)
         self.make_invuln()
         
         self.shot_timer = 0.0
@@ -265,6 +312,10 @@ class Player(Entity):
         return self.points
         
     def make_invuln(self):
+        '''
+        Make the player invulnerable
+        for a time
+        '''
         self.set_collidable(False)
         self.invuln_time = PLAYER_INVULN_TIME
         self.invuln_flash_time = PLAYER_INVULN_FLASH_PERIOD
@@ -273,12 +324,22 @@ class Player(Entity):
         return self.invuln_time > 0.0
     
     def invuln_flash(self, dt):
+        '''
+        Flash the player to indicate
+        invulnerable
+        '''
         self.invuln_flash_time -= dt
         if self.invuln_flash_time <= 0.0:
             self.visible = not self.visible
             self.invuln_flash_time = PLAYER_INVULN_FLASH_PERIOD
             
     def create_shot(self):
+        '''
+        Create a shot with the
+        proper position, velocity,
+        orientation and angular
+        velocity
+        '''
         direction = Vector2D(1, 0).rotate(self.orientation)
         shot_velocity = direction.scaled(self.shot_speed)
         shot_velocity.add(self.velocity)
@@ -292,6 +353,9 @@ class Player(Entity):
         return self.shot_timer <= 0.0
     
     def shoot(self):
+        '''
+        fire the weapon
+        '''
         if self.can_shoot() == True:
             self.shot_timer = self.shot_time
             return self.create_shot()
@@ -299,13 +363,23 @@ class Player(Entity):
             return None
         
     def increase_shot_frequency(self):
+        '''
+        make the weapon shoot faster
+        '''
         self.shot_time *= 0.75
         self.weapon_upgrades += 1
         
     def has_weapon_upgrade(self):
+        '''
+        Does this player have a weapon upgrade?
+        '''
         return self.weapon_upgrades > 0
     
     def get_weapon_upgrades(self):
+        '''
+        How many times the weapon
+        has been upgraded
+        '''
         return self.weapon_upgrades
         
     def update_shot_timer(self, dt):
@@ -315,9 +389,16 @@ class Player(Entity):
                 self.shot_timer = 0.0
                 
     def give_shield(self):
+        '''
+        apply shield powerup
+        '''
         self.shield_timer += self.shield_time
         
     def has_shield(self):
+        '''
+        does this Player have
+        a shield?
+        '''
         return self.shield_timer > 0
     
     def get_shield_timer(self):
@@ -338,18 +419,27 @@ class Player(Entity):
         self.ang_velocity = -self.turn_speed
                 
     def turn_cw_stop(self):
+        '''
+        stop clockwise rotation
+        '''
         self.ang_velocity = 0.0
         self.turn_cw = False
         if self.turn_ccw == True:
             self.turn_counterclockwise()
         
     def turn_ccw_stop(self):
+        '''
+        stop counterclockwise rotation
+        '''
         self.ang_velocity = 0.0
         self.turn_ccw = False
         if self.turn_cw == True:
             self.turn_clockwise()
         
     def accelerate(self, accel):
+        '''
+        move forward
+        '''
         self.accelerating = accel
         
     def lose_regen(self):
@@ -359,6 +449,10 @@ class Player(Entity):
         return self.regens_left
 
     def update(self, dt):
+        '''
+        Update Player state
+        and timers
+        '''
         if self.accelerating == True:
             self.apply_oriented_force(self.thrust)
         
@@ -414,7 +508,8 @@ class Player(Entity):
             Entity.draw(self, surface)
 
     
-ASTEROID_DAMAGE = 20
+ASTEROID_DAMAGE = 25
+ASTEROID_HP = 40
 ASTEROID_VELOCITY_MIN = 100
 ASTEROID_VELOCITY_MAX = 150
 ASTEROID_DIRECTION_SPREAD = math.pi/12 
@@ -623,4 +718,7 @@ class Explosion(Entity):
 
     
     def finished(self):
+        '''
+        is this Explosion still going?
+        '''
         return self.get_is_animating() == False

@@ -16,6 +16,8 @@ The GNU Image Manipulation Program (GIMP):
     http://www.gimp.org/
 Audacity:
     http://audacity.sourceforge.net/
+GNU Emacs (used to write credits.txt, controls.txt and story.txt):
+    http://www.gnu.org/software/emacs/
 ArchLinux GNU/Linux Distribution:
     https://www.archlinux.org/
 
@@ -30,10 +32,17 @@ Code:
 Graphics:
 =========
  -Public domain background images:
-     Title Screen Background:
-      File: BG/Title.jpg
-      Source: 
-         http://www.espenship.com/brent/images/Hubble-StarsInAndromeda.jpg
+     -Title Screen Background:
+       File: BG/Title.jpg
+       Source: 
+          http://www.espenship.com/brent/images/Hubble-StarsInAndromeda.jpg
+
+     -Hiscores Background:
+       File: BG/Hiscores.jpg
+       Source:
+          http://wallpapersoo.com/wp-content/uploads/2014/02/
+          space-background-tumblr-categories-wallpaper.jpg
+
  -Eric Eveleigh
  
 Sound Effects:
@@ -48,6 +57,7 @@ Fonts:
      Creator: Terran21 (Gustavo Paz)
      URL: http://openfontlibrary.org/en/font/new-academy
      (C) Gustavo Paz, CC-BY-SA 4.0 License
+
  -Title/Game Over Font
      Files: fonts/Rase-GPL.otf, fonts/Rase-GPL-Bold.otf, 
             fonts/Rase-GPL-Outline.otf
@@ -63,16 +73,19 @@ Music:
      Name: Satellite One
      Composer: Purple Motion (Jonne Valtonen) of Future Crew
      (C) 1993 Jonne Valtonen.
+
  -In-game BGM:
      File: BGM/aryx.s3m
      Name: aryx
      Composer: Karsten Koch
      (C) 1995 Karsten Koch.
+
  -Hiscore BGM:
      File: BGM/stardstm.mod
      Name: stardust memories
      Composer: Jester (Volker Tripp) of Sanity
      (C) 1992 Volker Tripp.
+
  -Credits BGM:
      File: BGM/hymn to aurora.mod
      Name: hymn to aurora
