@@ -458,10 +458,13 @@ class TextScreen(Screen):
             if (last_line.get_y() + last_line.get_height()) < 0:
                 self.position = (self.position[0], float(self.height))
     
+    def draw_text(self, surface):
+        for line in self.rendered_lines:
+            line.draw(surface)
+    
     def draw(self):
         self.display.fill((0,0,0))
-        for line in self.rendered_lines:
-            line.draw(self.display)
+        self.draw_text(self.display)
         pygame.display.flip()
         
     def go_back(self):
@@ -744,25 +747,179 @@ class InGameScreen(Screen):
     def quit_title(self):
         self.app_parent.screen_close()
 
+HISCORES_ENTER_FONT = pygame.font.Font("fonts/NEW ACADEMY.ttf", 20)
 class HiscoresScreen(TextScreen):
     '''
     Allows players to brag about their scores
     '''
+    class ScoreEntry(object):
+        '''
+        One player's success.
+        '''
+        def __init__(self, name, distance, points):
+            self.name = name
+            self.distance = distance
+            self.points = points
+            
+        def get_name(self):
+            return self.name
+        
+        def get_distance(self):
+            return "%.2f"%(self.distance)
+        
+        def get_points(self):
+            return str(self.points)
+        
+        @staticmethod
+        def from_file(file_obj):
+            name = file_obj.read_line().replace('\n','')
+            distance = float(file_obj.read_line().replace('\n',''))
+            points = int(file_obj.read_line().replace('\n',''))
+            
+            return HiscoresScreen.ScoreEntry(name, distance, points)
+        
+        def to_file(self, file_obj):
+            file_obj.write(self.get_name() + '\n')
+            file_obj.write(self.get_distance() + '\n')
+            file_obj.write(self.get_points() + '\n')
+            
     def __init__(self, width, height, app, display):
         TextScreen.__init__(self, width, height, app, display)
-        self.load_scores()
         
+        self.score_entries = []
+        
+        try:
+            self.load_scores()
+        except:
+            print "No hiscores yet."
+            
+        self.create_scores_text()
+            
+        self.adding_entry = False
+            
         self.set_bgm("BGM/stardstm.mod")
         
     def load_scores(self):
         '''
         Load the hiscores from file
         '''
-        pass
         
+        scores = open("hiscores.dat", "r")
+        
+        try:
+            while True:
+                self.score_entries.append(HiscoresScreen.ScoreEntry.from_file(scores))
+        except:
+            pass
+        
+        scores.close()
+        
+    def save_scores(self):
+        scores = open("hiscores.dat", "w")
+        
+        for entry in self.score_entries:
+            entry.to_file(scores)
+            
+        scores.close()
+    
     def add_game_entry(self, game):
         '''
         Add an entry into the hiscores from
         the game just played
         '''
+        self.adding_entry = True
+        self.game = game
+        
+        enter_position = (self.width/2, self.height/2)
+        
+        self.enter_name_text = RenderedText(HISCORES_ENTER_FONT, "Please enter your name: ", (255,255,255), True, True)
+        self.enter_name_text.set_position(enter_position)
+        
+        self.name_text = RenderedText(HISCORES_ENTER_FONT, "", (255,255,255), True, True)
+        self.name_text.set_position((enter_position[0], enter_position[1]+self.enter_name_text.get_height()))
+        self.name_string = ""
+        
+    def handle_event(self, event):
+        if self.adding_entry == True:
+            if event.type == pygame.KEYDOWN: 
+                mods = pygame.key.get_mods()
+                key = event.key
+                
+                if key >= 32 and key <= 126 or key == pygame.K_RETURN or key == pygame.K_BACKSPACE:
+                    # only detect printable characters
+                    if mods & pygame.KMOD_SHIFT:
+                        if key >= 97 and key <= 122:
+                            # make shift for letters work
+                            key -= 32
+                        if key >= 91 and key <= 94:
+                            # some symbols
+                            key += 32
+                            
+                    self.type_name(key)
+        else:
+            TextScreen.handle_event(self, event)
+            
+    def type_name(self, key):
+        if key == pygame.K_RETURN:
+            entry = HiscoresScreen.ScoreEntry(self.name_string, self.game.get_final_distance(), self.game.get_final_points())
+            self.score_entries.append(entry)
+            self.sort_scores()
+            self.save_scores()
+            self.create_scores_text()
+            self.adding_entry = False
+        else:
+            if key == pygame.K_BACKSPACE:
+                try:
+                    self.name_string = self.name_string[0:-1]
+                except:
+                    pass
+            else:
+                self.name_string = self.name_string + chr(key)
+            self.name_text.set_text(self.name_string)
+            self.name_text.set_center_x(True)
+            
+    def sort_scores(self):
         pass
+            
+    def create_scores_text(self):
+        rank = 1
+        text = ""
+        for entry in self.score_entries:
+            entry_text = "#" + str(rank) + ". " + entry.get_name() + " travelled " + entry.get_distance() + ", scored " + entry.get_points() + " points.\n"
+            text += entry_text
+            rank += 1
+        
+        self.set_text_color((255,255,255))
+        self.set_text(text)
+        self.set_text_position((50, 50))
+        
+        
+    def add_score_update(self, dt):
+        pass
+    
+    def add_score_draw(self, surface):
+        self.enter_name_text.draw(surface)
+        self.name_text.draw(surface)
+    
+    def scores_update(self, dt):
+        TextScreen.update(self, dt)
+    
+    def scores_draw(self, surface):
+        TextScreen.draw_text(self, surface)
+    
+    def update(self, dt):
+        TextScreen.update(self, dt)
+        if self.adding_entry:
+            self.add_score_update(dt)
+        else:
+            self.scores_update(dt)
+            
+    def draw(self):
+        self.display.fill((0,0,0))
+
+        if self.adding_entry:
+            self.add_score_draw(self.display)
+        else:
+            self.scores_draw(self.display)
+            
+        pygame.display.flip()
