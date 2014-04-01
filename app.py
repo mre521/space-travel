@@ -42,12 +42,10 @@ class AppState(object):
     frametime = 1.0/FRAMERATE
     
 
-    def __init__(self):
-        pass
-
-    # create pygame window with appropriate properties
     def setup_display(self):
-        
+        '''
+        create pygame window with appropriate properties
+        '''
         icon = pygame.image.load("obj/shipicon.png")
         icon.set_colorkey((255,0,255))
         
@@ -63,8 +61,11 @@ class AppState(object):
 
         self.clock = pygame.time.Clock()
 
-    # store frametime in correct units
+    
     def set_frametime(self,milliseconds):
+        '''
+        store frametime in correct units
+        '''
         # frametime has units of seconds
         # 1000ms in 1 second
         # seconds = ms/1000 seconds
@@ -73,18 +74,22 @@ class AppState(object):
     def get_open_screen(self):
         return self.screens[-1]
     
-    def screen_close(self):
+    def screen_close(self, new_screen=None):
         '''
         Called by the currently open Screen to close itself.
+        Optionally open a new screen at the same time.
         '''
         screen = self.screens.pop()
         screen.deactivate()
         
-        screen = self.get_open_screen()
-        if screen != None:
-            screen.activate()
+        if new_screen != None:
+            self.screen_open(new_screen)
+        else:
+            screen = self.get_open_screen()
+            if screen != None:
+                screen.activate()
         
-    def screen_open(self, new):
+    def screen_open(self, new_screen):
         '''
         Called by the currently open Screen to open a new
         Screen.
@@ -92,10 +97,14 @@ class AppState(object):
         screen = self.get_open_screen()
         screen.deactivate()
         
-        new.activate()
-        self.screens.append(new)
+        new_screen.activate()
+        self.screens.append(new_screen)
 
     def handle_events(self, events, screen):
+        '''
+        pass pygame events down the chain of 
+        screens
+        '''
         screen.handle_events(events)
         for event in events:
             if event.type == pygame.QUIT:
@@ -103,18 +112,26 @@ class AppState(object):
         
 
     def update_state(self, screen, frametime):
+        '''
+        update the screen
+        '''
         events = pygame.event.get()
         self.handle_events(events, screen)
         screen.update(frametime)
 
-    # show the result of everything
     def draw_graphics(self, screen):
+        '''
+        show the result of everything
+        '''
         screen.draw()
 
     
-    # all game code runs from here
-    # updates state and graphics
+    
     def loop(self):
+        '''
+        all game code runs from here
+        updates state and graphics
+        '''
         self.active = True
         
         screen = self.get_open_screen()
@@ -130,8 +147,11 @@ class AppState(object):
             if screen == None:
                 self.active = False
 
-    # starts everything
+    
     def run(self):
+        '''
+        starts everything
+        '''
         pygame.init()
         self.setup_display()
         

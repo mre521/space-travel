@@ -1,0 +1,20 @@
+Controls
+=======
+
+To control your ship:
+    A or left arrow key rotates counter-clockwise.
+    D or right arrow key rotates clockwise.
+    W or up arrow key accelerates in the direction the ship points.
+    S or down arrow key does nothing because allowing reverse
+        acceleration would be too easy.
+ 
+    Holding space bar fires energy weapon shots.
+
+    The K key destroys your ship if you really want to.
+
+Menu Navigation (If you haven't already figured out):
+    Up/down arrow keys navigate menus.
+    Right arrow key/enter enters menus. 
+    Left arrow key/escape exits menus.
+
+That's about it.

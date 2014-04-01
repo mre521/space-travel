@@ -1,38 +1,56 @@
 Space Travel
 ============
 
-Created using Free (as in 'free speech', not 'free beer') sofware.
+Created using free ("as in free speech, not as in free beer" -R. Stallman) 
+software:
 
 Eclipse IDE:
     https://www.eclipse.org/
 PyDev for Eclipse:
     http://pydev.org/
+PyGame:
+    http://www.pygame.org/
+Python 2.7:
+    https://www.python.org/download/releases/2.7/
+The GNU Image Manipulation Program (GIMP):
+    http://www.gimp.org/
+Audacity:
+    http://audacity.sourceforge.net/
 ArchLinux GNU/Linux Distribution:
     https://www.archlinux.org/
 
 Idea:
 =====
- Eric Eveleigh
+ -Eric Eveleigh
 
 Code:
 =====
- Eric Eveleigh
-
+ -Eric Eveleigh
+ 
 Graphics:
 =========
- -Public domain images
+ -Public domain background images:
+     Title Screen Background:
+      File: BG/Title.jpg
+      Source: 
+         http://www.espenship.com/brent/images/Hubble-StarsInAndromeda.jpg
+ -Eric Eveleigh
+ 
+Sound Effects:
+==============
  -Eric Eveleigh
 
 Fonts:
 ======
- -Menu Font
+ -Menu/In-game/Text Font
      File: fonts/NEW ACADEMY.ttf
      Name: NEW ACADEMY
      Creator: Terran21 (Gustavo Paz)
      URL: http://openfontlibrary.org/en/font/new-academy
      (C) Gustavo Paz, CC-BY-SA 4.0 License
- -Title Font
-     Files: fonts/Rase-GPL.otf, fonts/Rase-GPL-Bold.otf, fonts/Rase-GPL-Outline.otf
+ -Title/Game Over Font
+     Files: fonts/Rase-GPL.otf, fonts/Rase-GPL-Bold.otf, 
+            fonts/Rase-GPL-Outline.otf
      Name: Rase-GPL
      Creator: Matthew Napolitano
      URL: http://openfontlibrary.org/en/font/rase-gpl
@@ -50,3 +68,14 @@ Music:
      Name: aryx
      Composer: Karsten Koch
      (C) 1995 Karsten Koch.
+ -Hiscore BGM:
+     File: BGM/stardstm.mod
+     Name: stardust memories
+     Composer: Jester (Volker Tripp) of Sanity
+     (C) 1992 Volker Tripp.
+ -Credits BGM:
+     File: BGM/hymn to aurora.mod
+     Name: hymn to aurora
+     Composer: Horace Wimp (Fredrik Skogh) of Aurora
+     (C) 199? Fredrik Skogh
+

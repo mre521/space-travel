@@ -1,5 +1,6 @@
 #
 # vector.py - implementation of two dimensional vector
+#             and operations
 #
 # PygameGame
 #     Copyright (C) 2014  Eric Eveleigh
@@ -44,38 +45,50 @@ class Vector2D(object):
         self.x = float(x)
         self.y = float(y)
 
-    # creates new instance identical to self
     def copy(self):
+        '''
+        creates new instance identical to self
+        '''
         return Vector2D(self.x, self.y)
     
-    # get the norm (length/magnitude) of self
     def norm(self):
+        '''
+        get the norm (length/magnitude) of self
+        '''
         return math.sqrt(self.norm_squared())
     
     def norm_squared(self):
+        '''
+        faster than norm if you only need to compare norms
+        '''
         return self.x**2 + self.y**2
 
-    # scale self by scalar
     def scale(self, scalar):
         self.x *= scalar
         self.y *= scalar
         return self
 
-    # get new vector = to self*scalar
     def scaled(self, scalar):
+        '''
+        get new vector = to self*scalar
+        '''
         vect = Vector2D(self.x, self.y)
         return vect.scale(scalar)
 
-    # get unit vector in direction of self
     def direction(self):
+        '''
+        get unit vector in direction of self
+        '''
         norm = self.norm()
         if norm == 0.0:
             return Vector2D(0,0)
 
         return self.scaled(1.0/self.norm())
-        
-    # rotate self theta radians
+
     def rotate(self, theta):
+        '''
+        rotate self theta radians
+        '''
         # trivial optimization: only calculate cos/sin once
         costheta = math.cos(theta)
         sintheta = math.sin(theta)
@@ -83,75 +96,109 @@ class Vector2D(object):
         x = self.x
         y = self.y
         
-        # Rotation matrix:
-        # |x'| = |cos(t) -sin(t)||x|
-        # |y'| = |sin(t)  cos(t)||y|
+        '''
+         Rotation matrix:
+         |x'| = |cos(t) -sin(t)||x|
+         |y'| = |sin(t)  cos(t)||y|
+        '''
         self.x = x*costheta - y*sintheta
         self.y = x*sintheta + y*costheta
 
         return self
     
-    # undo rotation of theta radians
     def rotate_inverse(self, theta):
+        '''
+        undo rotation of theta radians
+        '''
         return self.rotate(-theta)
         
-    # get new vector rotated by theta
     def rotated(self, theta):
+        '''
+        get new vector rotated by theta
+        '''
         return self.copy().rotate(theta)
 
-    # get new vector with undone rotation
     def unrotated(self, theta):
+        '''
+        get new vector with undone rotation
+        '''
         return self.copy().rotate_inverse(theta)
 
-    # get scalar product of self dot b
     def dot(self,b):
+        '''
+        get scalar product of self dot b
+        '''
         return self.x*b.x + self.y*b.y
     
-    # third component of selfxb if self and b were 3D vectors
     def cross2(self, b):
+        '''
+        cheating for a 2D cross product:
+        third component of self x b as if self and b were 3D vectors
+        '''
         return self.x*b.y - self.y*b.x
     
     @staticmethod
-    # third component of vector cross with vect
     def cross3(z, vect):
+        '''
+        another 2D cross product:
+        third component of vector cross with vect
+        '''
         x = -z*vect.y
         y = z*vect.x
         return Vector2D(x,y)
 
-    # add b to self
     def add(self, b):
+        '''
+        add b to self
+        '''
         self.x += b.x
         self.y += b.y
         return self
 
-    # get result of vec addition self+b
     def addition(self,b):
+        '''
+        get result of vec addition self+b
+        '''
         return self.copy().add(b)
 
-    # reverse direction of self
     def reverse(self):
+        '''
+        reverse direction of self
+        '''
         self.x = -self.x
         self.y = -self.y
         return self
 
-    # return copy of -self vector 
     def reversed(self):
+        '''
+        return copy of reversed self vector
+        '''
         vect = self.copy()
         return vect.reverse()
 
     def perp(self):
+        '''
+        return perpendicular vector with
+        same magnitude
+        '''
         return Vector2D(-self.y, self.x)
         
-    # get normal to this vector
     def normal(self):
+        '''
+        get normal to this vector
+        '''
         return self.perp().direction()
 
-    # find point of intersection, if any,
-    # of vectors A and B, given as two position
-    # vectors each
-    # also returns parameter in the A direction
+
     @staticmethod
     def intersection(a1, a2, b1, b2):
+        '''
+        find point of intersection, if any,
+        of line segments A and B, given as two 
+        position vectors each.
+        also returns parameter in the A direction
+        '''
+        
         # calculate direction of A(1) and B(2)
         d1 = a2.addition(a1.reversed()).direction()
         d2 = b2.addition(b1.reversed()).direction()
@@ -174,6 +221,9 @@ class Vector2D(object):
         t1 = (c.x*d2.y - c.y*d2.x)/denom
         point = a1.addition(d1.scaled(t1))
 
+
+        # probably inefficient method of checking
+        # line segment bounds, but who cares
         if a2.x > a1.x:
             if point.x < a1.x or point.x > a2.x:
                 return None

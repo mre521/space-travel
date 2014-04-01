@@ -122,18 +122,27 @@ class Object2D(object):
         '''
         width, height = (self.bb_max.addition(self.bb_min.reversed()).get_int()) 
         return pygame.Rect(left, top, width, height)
-    # converts a point in the geometry's space
-    # to a point in the world space
+    
     def model_to_world(self, point):
+        '''
+        converts a point in this object's geometry
+        space to a point in the world space
+        '''
         return point.rotated(self.orientation).add(self.position)
         
-    # converts a point in world space to a point
-    # in geometry space
+    
     def world_to_model(self, point):
+        '''
+        converts a point in world space to a point
+        in this object's geometry space
+        '''
         return point.addition(self.position.reversed()).rotate_inverse(self.orientation)
 
-    # set bounding box of self from points
+    
     def calc_bbox(self, points):
+        '''
+        set bounding box from points
+        '''
         self.bb_min.set()
         self.bb_max.set()
         for point in points:
@@ -148,12 +157,13 @@ class Object2D(object):
         self.bb_min.add(self.position)
         self.bb_max.add(self.position)
     
-    # center of mass of self from points
     def calc_cm(self, points):
-        # determines centroid of the set of points
-        # this equals CM since uniform density is assumed
-        # http://en.wikipedia.org/wiki/Center_of_mass#A_continuous_volume
-        # centroid is basically 2D average of points
+        '''
+        determines centroid of the set of points
+        this equals CM since uniform density is assumed
+        http://en.wikipedia.org/wiki/Center_of_mass#A_continuous_volume
+        centroid is basically 2D average of points
+        '''
         cm = Vector2D()
         npoints = len(points)
         if npoints > 0:
@@ -163,9 +173,12 @@ class Object2D(object):
             cm.scale(1.0/npoints)
         self.cm = cm
 
-    # calculate moment of inertia about cm
-    # http://en.wikipedia.org/wiki/List_of_moments_of_inertia
+
     def calc_moment(self):
+        '''
+        calculate moment of inertia about CM for rigid body
+        http://en.wikipedia.org/wiki/List_of_moments_of_inertia
+        '''
         points = list(self.phys_geom)
         points.append(points[0])
         n = 0
@@ -181,12 +194,13 @@ class Object2D(object):
         try:
             self.moment = (self.mass * sumtop) / (60.0 * sumbottom)
         except:
-            self.moment = float('+inf')
-        print "Mass:",self.mass
-        print "Moment:",self.moment
+            self.moment = float('+inf') # cause
 
-    # calc oriented geometry
     def get_oriented_geometry(self,orientation):
+        '''
+        calculate and return oriented 
+        physics geometry and faces
+        '''
         n = 0
         phys_geom_oriented = [None]*len(self.phys_geom)
         oriented_faces = [None]*len(self.phys_geom)
@@ -201,50 +215,62 @@ class Object2D(object):
                                   phys_geom_oriented[0])
         return (phys_geom_oriented, oriented_faces)
 
-    # re-center geometry about CM
     def calc_phys_geom(self):
+        '''
+        create physics geometry 
+        centered about CM
+        '''
         self.phys_geom = []
         for point in self.geometry:
             self.phys_geom.append(point.addition(self.cm.reversed()))
         self.phys_geom_oriented = list(self.phys_geom)
         self.oriented_faces = [(Vector2D(),Vector2D())]*len(self.phys_geom_oriented)
-        #self.calc_phys_geom_oriented()
+
         self.phys_geom = tuple(self.phys_geom)
     
-    # set geometry and calculate BB
+    # 
     def set_geometry(self, points):
+        '''
+        set geometry and calculate BB
+        '''
         self.geometry = points
         self.calc_bbox(points)
         self.calc_cm(points)
         self.calc_phys_geom()
         self.calc_moment()
 
-    # take in force and radius and
-    # add the resulting torque
     def add_torque(self, r, force):
+        '''
+        apply a torque resulting
+        from force, r away from
+        CM.
+        '''
         torque = r.cross2(force)
         self.torque += torque
-
-    # applies the given force to given face
-    def add_force(self, face, force):
-        # final minus initial then get normal
-        print force.norm()
-        normal = face[1].addition(face[0].reversed()).normal()
-        normal_force = normal.scaled(force.dot(normal)*100)
-        print normal_force.norm()
-        self.force.add(normal_force)
         
     def apply_force(self, force):
+        '''
+        apply vector force
+        '''
         self.force.add(force)
         
+    
     def apply_oriented_force(self, magnitude):
+        '''
+        apply force of magnitude in
+        the direction this object
+        faces.
+        '''
         force = Vector2D(1, 0).rotate(self.orientation).scale(magnitude)
         self.apply_force(force)
+    
 
-    # Keep orientation in the range -pi < 0 <= pi.
-    # Quickly rotating objects may otherwise gain very
-    # large angles subject to floating point error
     def limit_orientation(self):
+        '''
+        Keep orientation in the range -pi < 0 <= pi.
+        Quickly rotating objects may otherwise gain very
+        large angles subject to floating point error
+        '''
         # positive angles
         if self.orientation >= 0:
             # angle farther than half way
@@ -259,6 +285,9 @@ class Object2D(object):
                 + (self.orientation + math.pi)
         
     def calc_next_state(self, dt):
+        '''
+        Calculate next object state
+        '''
         self.next_position = self.position.addition(self.velocity.scaled(dt))
         # velocity += acceleration*dt
         self.next_acceleration = (self.force.scaled(dt/self.mass))
@@ -272,20 +301,26 @@ class Object2D(object):
         self.next_ang_velocity = self.ang_velocity + self.ang_accel*dt 
         self.next_ang_accel = self.torque/self.moment
         
-    # time step object state, dynamics, etc.
+    
     def update(self, dt):
+        '''
+        time step object state, dynamics, etc.
+        '''
         self.calc_next_state(dt)
+        
         # dynamics: dp = v*dt + 0.5 * a*dt^2
         self.position.add(self.velocity.scaled(dt))
+        
         # velocity += acceleration*dt
         self.acceleration = (self.force.scaled(dt).scaled(1.0/self.mass))
-        #self.acceleration.add(Vector2D(0,98))
+
         self.velocity.add(self.acceleration.scaled(dt)) 
+        
         # angular dynamics: d(-) = w*dt + 0.5 * a*dt^2
         dtheta = self.ang_velocity*dt + self.ang_accel*(0.5 * dt**2)
         self.orientation += dtheta
         self.limit_orientation()
-        #print self.orientation
+
         # angular velocity += ang accel * dt
         self.ang_velocity += self.ang_accel*dt 
         self.ang_accel = self.torque/self.moment
@@ -300,11 +335,19 @@ class Object2D(object):
         self.collided_with = []
 
     def point_abs_velocity(self, r):
+        '''
+        velocity of body plus rotational 
+        velocity at r away from CM
+        '''
         linear_vel = self.velocity
         angular_vel = self.ang_velocity
         return linear_vel.addition(r.perp().scale(angular_vel)).scaled(self.last_dt)
 
     def vert_abs_velocity(self, vertnum):
+        '''
+        velocity of body plus rotational 
+        velocity at vertice
+        '''
         vert = self.phys_geom[vertnum]
         r = vert.rotated(self.orientation)
         abs_vel = self.point_abs_velocity(r)
@@ -313,6 +356,10 @@ class Object2D(object):
         return linear_vel.addition(r.perp().scale(angular_vel))
 
     def vert_next_abs_velocity(self, vertnum):
+        '''
+        next velocity of body plus rotational 
+        velocity at vertice
+        '''
         linear_vel = self.next_velocity
         angular_vel = self.next_ang_velocity
         vert = self.phys_geom[vertnum]
@@ -332,11 +379,15 @@ class Object2D(object):
         return top/bottom
 
 
-    # signal that self is being hit by
-    # obj and something should be done
-    # about it - collision resolution
+    # http://en.wikipedia.org/wiki/Collision_response#Impulse-Based_Reaction_Model
     def hit_by(self, obj, collision):
-        #self.collided_with.append(obj)
+        '''
+        signal that self is being hit by
+        obj and something should be done
+        about it - collision resolution
+        
+        This code cold be alot cleaner...
+        '''
         
         r1 = collision.point.addition(self.position.reversed())
         r2 = collision.point.addition(obj.position.reversed())
@@ -372,25 +423,19 @@ class Object2D(object):
 
         obj.velocity = v2
         obj.ang_velocity = w2
-       
-    '''
-    # Not needed, fixed Dynamics
-    def has_collided_with(self, obj):
-        for object in self.collided_with:
-            if obj == object:
-                return True
-            
-        return False
-    '''
-            
 
-    # shows physics info on surface:
-    # bounding box in black
-    # geometry in green
-    # vertice vectors in blue
-    # center of mass in red
+            
     def draw_phys(self, surface):
-        # geometry, vertices, CM
+        '''
+        Hacky display function for debugging
+        
+        Shows physics info on surface:
+        bounding box in white
+        face normals in yellow
+        geometry in green
+        vertice vectors in blue
+        center of mass in red
+        '''
 
         points = []
         drawpoints = []
@@ -399,29 +444,33 @@ class Object2D(object):
             points.append(point)
             abspoint = point.copy().add(self.position)
             drawpoints.append(abspoint.get())
+            
+            # draw line from CM to vertice
             pygame.draw.line(surface, (0,0,255), 
                              self.position.get(), 
                              abspoint.get())
+            
             velocity = self.vert_next_abs_velocity(i)
-            '''
+            
+            # draw line showing absolute velocity at
+            # vertice
             pygame.draw.line(surface, (255,0,0),
                              abspoint.get(),
                              abspoint.addition(velocity).get())
-            '''
             i += 1
             
-        '''
+        
+        # draw face normals
         faces = self.get_oriented_geometry(self.orientation)[1]
         for face in faces:
-            #pygame.draw.line(surface, (0,255,0), face[0].addition(self.position).get_int(), face[1].addition(self.position).get_int())
             vect = face[1].addition(face[0].reversed())
             normal = vect.normal()
             midpoint = face[0].addition(vect.scaled(0.5)).addition(self.position)
             finalpoint = midpoint.addition(normal.scaled(10))
             pygame.draw.line(surface, (255,255,0), midpoint.get_int(), finalpoint.get_int())
-        '''
+        
 
-        # draw geom
+        # draw geometry
         pygame.draw.polygon(surface, (0,255,0), drawpoints, 1)
 
         # calc/draw CM
@@ -430,56 +479,51 @@ class Object2D(object):
         pygame.draw.circle(surface, (255,0,0), cm_abs.get_int(), 2)
 
         # bounding box
-        '''
         self.calc_bbox(points)
         bbox = self.get_bounding_rect()
         
         pygame.draw.rect(surface, (255, 255, 255), bbox, 1)
-        '''
-
-class Collision(object):
-    # obj1 is hitting obj2
-    def __init__(self, obj1, obj2, point, normal, time):
-        self.obj1 = obj1
-        self.obj2 = obj2
-        self.point = point
-        self.normal = normal
-        self.time = time
-
-    def resolve(self):
-        self.obj2.hit_by(self.obj1, self)
-        
-    def is_between(self, obj1, obj2):
-        return self.obj1 == obj1 and self.obj2 == obj2
 
 class Dynamics(object):
-    def __init__(self):
-        self.objects = []
+    '''
+    Produce the dynamic physics that looks
+    good.
+    '''
+    class Collision(object):
+        '''
+        Store collision data
+        '''
+        # obj1 is hitting obj2
+        def __init__(self, obj1, obj2, point, normal, time):
+            self.obj1 = obj1
+            self.obj2 = obj2
+            self.point = point
+            self.normal = normal
+            self.time = time
+    
+        def resolve(self):
+            self.obj2.hit_by(self.obj1, self)
+            
+        def is_between(self, obj1, obj2):
+            return self.obj1 == obj1 and self.obj2 == obj2
 
-    def add_object(self,obj):
-        self.objects.append(obj)
-
-    def update_all(self, dt):
-        for obj in self.objects:
-            obj.update(dt)
-
-    def update(self, dt):
-        timestep = dt
-        self.resolve_collisions(dt)
-        self.update_all(dt)
-
-    def rect_from_bbox(self,bbox):
-        rect = pygame.Rect()
-        rect.topleft = bbox[0].get_int()
-        rect.bottomright = bbox[1].get_int()
-        return rect
-
-    # find if two Rects intersect
-    # returns False if no intersection exists
+    
     def bbox_intersect(self,box1, box2):
+        '''
+        find if two Rects intersect
+        returns False if no intersection exists
+        '''
         return box1.colliderect(box2)
 
     def check_collisions(self, obj1, obj2, dt):
+        '''
+        Check for collision between two objects
+        This would be better if it used the
+        Separating axis theorem instead of the 
+        naive way of checking for intersections
+        for all faces for both polygons.
+        http://en.wikipedia.org/wiki/Hyperplane_separation_theorem
+        '''
         collision = None
         geometry1 = obj1.get_oriented_geometry(obj1.next_orientation)
         geometry2 = obj2.get_oriented_geometry(obj2.next_orientation)
@@ -499,7 +543,7 @@ class Dynamics(object):
                 col = Vector2D.intersection(a1, a2, b1, b2)
                 if col != None and (collision == None or col[1] < collision.time):
                     normal = face[1].addition(face[0].reversed()).normal() # collision normal
-                    collision = Collision(obj1, obj2, col[0], normal,  col[1])
+                    collision = Dynamics.Collision(obj1, obj2, col[0], normal,  col[1])
         return collision
         
     
@@ -507,6 +551,7 @@ class Dynamics(object):
         '''
         returns a Collision if obj1 and obj2 will
         collide next update. Returns None if not
+        This /should/ be improved
         '''
         # TODO: change to use next state bbox
         obj1.calc_bbox(obj1.phys_geom_oriented)
@@ -552,7 +597,8 @@ class Dynamics(object):
         obj_list1 = [obj1,obj2,obj3,obj4]
         obj_list2 = []
         
-        This function is a major bottleneck.
+        This function the worst performance
+        bottleneck in the whole game.
         The outer loop is at least O(n^2) but
         the entire function is worse.
         '''
@@ -583,4 +629,5 @@ class Dynamics(object):
                 obj2.calc_next_state(dt)
                 collision = self.find_collision(obj1, obj2, dt)
                 if collision != None:
+                    # notify objects they need to do something
                     collision.resolve()

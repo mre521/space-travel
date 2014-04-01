@@ -43,7 +43,7 @@ class BGM(object):
         pygame.mixer.pause()
         
     def stop(self, time):
-        pygame.mixer.music.fadeout(time)
+        pygame.mixer.music.fadeout(int(time))
         
     @staticmethod
     def playing():
@@ -165,9 +165,10 @@ MENU_MEMBER_FONT = pygame.font.Font("fonts/NEW ACADEMY.ttf", 40)
 MENU_TITLE_COLOR = (255,255,255)
 MENU_MEMBER_COLOR = (255,127,255)
 class Menu(object):
-    def __init__(self, title, enter_function=None, title_font=MENU_TITLE_FONT, member_font=MENU_MEMBER_FONT):
+    def __init__(self, title, enter_function=None, enter_and_call=False, title_font=MENU_TITLE_FONT, member_font=MENU_MEMBER_FONT):
         self.title = title
         self.enter_function = enter_function
+        self.enter_and_call = enter_and_call
         self.title_font = title_font
         self.member_font = member_font
         
@@ -247,6 +248,9 @@ class Menu(object):
                 return selected
             else:
                 selected.enter_function(enter_parameter)
+                if selected.enter_and_call == True:
+                    selected.set_position(self.position)
+                    return selected
         except Exception as e:
             print e
             return None
@@ -306,6 +310,8 @@ class Screen(object):
         self.display = display
         
         self.set_bgm(None)
+        self.set_bgm_volume(1.0)
+        self.set_bgm_fadetime(2000)
         self.set_bg_image(None)
         self.set_bg_scaled(False)
         self.set_should_draw_bg(False)
@@ -406,6 +412,8 @@ class TextScreen(Screen):
         self.set_scroll(False)
         self.set_scroll_rate(0.0)
         
+        self.rendered_lines = []
+        
         self.set_text("")
         self.set_text_color((0,0,0))
         
@@ -427,7 +435,6 @@ class TextScreen(Screen):
         self.color = color
         
     def generate_lines(self):
-        self.rendered_lines = []
         text_lines = self.text.split('\n')
         for line in text_lines:
             rendered = RenderedText(TEXT_FONT, line, self.color)
@@ -489,15 +496,31 @@ class TitleScreen(Screen):
         self.menu = Menu("Main Menu")
         self.menu.set_position((self.display.get_width()/2, self.display.get_height()/3))
         
-        start_menu = Menu("Start Game", TitleScreen.start_game)
-        #start_menu.add_member(Menu("Easy Difficulty"))
-        #start_menu.add_member(Menu("Medium Difficulty"))
-        #start_menu.add_member(Menu("Hard Difficulty"))
+        start_menu = Menu("Start Game")
+        
+        
+        easy = Menu("Easy Difficulty", TitleScreen.easy_difficulty)
+        medium = Menu("Medium Difficulty", TitleScreen.medium_difficulty)
+        hard = Menu("Hard Difficulty", TitleScreen.hard_difficulty)
+        
+        normal = Menu("Normal Game", TitleScreen.normal_mode, True)
+        endurance = Menu("Endurance", TitleScreen.endurance_mode, True)
+        
+        normal.add_member(easy)
+        normal.add_member(medium)
+        normal.add_member(hard)
+        
+        endurance.add_member(easy)
+        endurance.add_member(medium)
+        endurance.add_member(hard)
+        
+        start_menu.add_member(normal)
+        start_menu.add_member(endurance)
         
         self.menu.add_member(start_menu)
-        self.menu.add_member(Menu("Options"))
         self.menu.add_member(Menu("Story", TitleScreen.show_story))
-        self.menu.add_member(Menu("Controls"))
+        self.menu.add_member(Menu("Controls", TitleScreen.show_controls))
+        self.menu.add_member(Menu("Hiscores", TitleScreen.show_hiscores))
         self.menu.add_member(Menu("Credits", TitleScreen.show_credits))
         self.menu.add_member(Menu("Exit", TitleScreen.quit_game))
         
@@ -506,6 +529,10 @@ class TitleScreen(Screen):
         
     def activate(self):
         Screen.activate(self)
+        
+        # get to top level menu
+        while self.menu_exit():
+            pass
         
     def deactivate(self):
         Screen.deactivate(self)
@@ -536,10 +563,31 @@ class TitleScreen(Screen):
         menu = self.menu.exit()
         if type(menu) == type(self.menu):
             self.menu = menu
-            
+            return True
+        else:
+            return False
+        
+    def easy_difficulty(self):
+        self.game_diff = game.GAME_DIFF_EASY
+        self.start_game()
+        
+    def medium_difficulty(self):
+        self.game_diff = game.GAME_DIFF_MEDIUM
+        self.start_game()
+        
+    def hard_difficulty(self):
+        self.game_diff = game.GAME_DIFF_HARD
+        self.start_game()
+        
+    def normal_mode(self):
+        self.game_mode = game.GAME_MODE_NORMAL
+        
+    def endurance_mode(self):
+        self.game_mode = game.GAME_MODE_ENDURANCE
+        
     def start_game(self):
         gamescreen = InGameScreen(self.width, self.height, self.app_parent, self.display)
-        gamescreen.start_game(game.GAME_DIFF_MEDIUM, game.GAME_MODE_ENDURANCE)
+        gamescreen.start_game(self.game_diff, self.game_mode)
         self.app_parent.screen_open(gamescreen)
             
     def show_story(self):
@@ -552,23 +600,41 @@ class TitleScreen(Screen):
         
         story.set_text(text)
         
-        story.set_text_position((self.width/20, self.height/10))
+        story.set_text_position((self.width/20, self.height/20))
         self.app_parent.screen_open(story)
+        
+    def show_controls(self):
+        controls_screen = TextScreen(self.width, self.height, self.app_parent, self.display)
+        controls_screen.set_text_color((255,255,255))
+        
+        text_file = open("txt/controls.txt", "r")
+        text = text_file.read()
+        text_file.close()
+        
+        controls_screen.set_text(text)
+        
+        controls_screen.set_text_position((self.width/20, self.height/20))
+        self.app_parent.screen_open(controls_screen)
+        
+    def show_hiscores(self):
+        hiscores_screen = HiscoresScreen(self.width, self.height, self.app_parent, self.display)
+        self.app_parent.screen_open(hiscores_screen)
             
     def show_credits(self):
-        credits = TextScreen(self.width, self.height, self.app_parent, self.display)
-        credits.set_text_color((255,255,255))
-        credits.set_scroll(True)
-        credits.set_scroll_rate(2.5)
+        credits_screen = TextScreen(self.width, self.height, self.app_parent, self.display)
+        credits_screen.set_text_color((255,255,255))
+        credits_screen.set_scroll(True)
+        credits_screen.set_scroll_rate(1.5)
         
         text_file = open("txt/credits.txt", "r")
         text = text_file.read()
         text_file.close()
         
-        credits.set_text(text)
+        credits_screen.set_text(text)
         
-        credits.set_text_position((self.width/20, self.height))
-        self.app_parent.screen_open(credits)
+        credits_screen.set_bgm("BGM/hymn to aurora.mod")
+        credits_screen.set_text_position((self.width/20, self.height))
+        self.app_parent.screen_open(credits_screen)
     
     def quit_game(self):
         self.app_parent.screen_close()
@@ -593,8 +659,7 @@ class InGameScreen(Screen):
         self.set_bgm_volume(1.0)
         self.set_bgm_fadetime(1000)
         
-        #self.set_bg_image("TitleBG.jpg")
-        #self.set_bg_scaled(True)
+
         self.set_should_draw_bg(False)
         
         self.pause_menu = Menu("Paused")
@@ -629,7 +694,7 @@ class InGameScreen(Screen):
         elif event.type == pygame.KEYUP:
             self.key_up(event.key)
         elif event.type == game.GAME_SHOW_HISCORES:
-            self.quit_title()
+            self.show_hiscores()
         elif event.type == game.GAME_SHOW_TITLE:
             self.quit_title()
 
@@ -667,10 +732,19 @@ class InGameScreen(Screen):
             
         pygame.display.flip()
         
+    def show_hiscores(self):
+        '''
+        Close this screen but open Hiscores at the same time,
+        adding a new entry for the game just played.
+        '''
+        hiscores_screen = HiscoresScreen(self.width, self.height, self.app_parent, self.display)
+        hiscores_screen.add_game_entry(self.game)
+        self.app_parent.screen_close(hiscores_screen)
+        
     def quit_title(self):
         self.app_parent.screen_close()
 
-class HiScoresScreen(TextScreen):
+class HiscoresScreen(TextScreen):
     '''
     Allows players to brag about their scores
     '''
@@ -678,8 +752,12 @@ class HiScoresScreen(TextScreen):
         TextScreen.__init__(self, width, height, app, display)
         self.load_scores()
         
+        self.set_bgm("BGM/stardstm.mod")
         
     def load_scores(self):
+        '''
+        Load the hiscores from file
+        '''
         pass
         
     def add_game_entry(self, game):

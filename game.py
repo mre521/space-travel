@@ -175,9 +175,6 @@ class InfoDisplay(object):
     '''
     Displays game information on the screen
     as the game plays out.
-    
-    TODO: generalize the methods for any number
-    of texts, factor out code
     '''
     class Text(object):
         '''
@@ -241,15 +238,59 @@ class InfoDisplay(object):
             if text.get_visible() == True:
                 text.draw(surface)
         
-
+    
+HP_TEXT = "HP:"
+class HPBar(object):
+    '''
+    Don't want cluttered code
+    so make classes
+    '''
+    def __init__(self, max_hp, width, height):
+        self.set_width(width)
+        self.set_height(height)
+        
+        self.hp_value = 0
+        self.hp_max = float(max_hp)
+        pass
+    
+    def set_position(self, position):
+        '''
+        set position as x,y coordinate tuple
+        '''
+        self.position = position
+        self.hp_static.set_position(position)
+        
+    def set_width(self, width):
+        self.width = width
+        
+    def set_height(self, height):
+        self.height = height
+        self.font = pygame.font.Font("fonts/NEW ACADEMY.ttf", height)
+        self.hp_static = screen.RenderedText(self.font, HP_TEXT, (0,255,0), False, False, True, False, False, True)
+        
+    def set_value(self, value):
+        self.hp_value = value
+        
+    def draw(self, surface):
+        '''
+        Draw a nice HP bar
+        '''
+        ratio = self.hp_value / self.hp_max
+        width_hp = int(self.width * ratio)
+        
+        pygame.draw.rect(surface, (255, 0, 0), pygame.Rect(self.position, (width_hp, self.height)))
+        pygame.draw.rect(surface, (127, 127, 127), pygame.Rect(self.position, (self.width, self.height)), 2)
+        
+        self.hp_static.draw(surface)
+        
 # three difficulty modes        
 GAME_DIFF_EASY = 1
 GAME_DIFF_MEDIUM = 2
 GAME_DIFF_HARD = 3
-# corresponding came settings
+# corresponding game settings
 GAME_SETTINGS_EASY = {'distance': 1200, 'default_regens': 5, 'default_hp': 100, 'aster_prob': 1.0/5, 'hole_prob': 1.0/35, 'shield_prob': 1.0/10, 'weapon_prob': 1.0/20}
-GAME_SETTINGS_MEDIUM = {'distance': 2400, 'default_regens': 3, 'default_hp': 100, 'aster_prob': 1.0/4, 'hole_prob': 1.0/25, 'shield_prob': 1.0/15, 'weapon_prob': 1.0/25}
-GAME_SETTINGS_HARD = {'distance': 4800, 'default_regens': 2, 'default_hp': 100, 'aster_prob': 1.0/3, 'hole_prob': 1.0/10, 'shield_prob': 1.0/20, 'weapon_prob': 1.0/30 }
+GAME_SETTINGS_MEDIUM = {'distance': 2400, 'default_regens': 4, 'default_hp': 100, 'aster_prob': 1.0/4, 'hole_prob': 1.0/25, 'shield_prob': 1.0/15, 'weapon_prob': 1.0/25}
+GAME_SETTINGS_HARD = {'distance': 4800, 'default_regens': 3, 'default_hp': 100, 'aster_prob': 1.0/3, 'hole_prob': 1.0/10, 'shield_prob': 1.0/20, 'weapon_prob': 1.0/30 }
 # game modes
 GAME_MODE_NORMAL = 1 # fly until destination reached
 GAME_MODE_ENDURANCE = 2 # fly until no regenerations left
@@ -257,8 +298,8 @@ GAME_MODE_ENDURANCE = 2 # fly until no regenerations left
 GAME_TRAVEL_VELOCITY = 10.0 # 10 units of distance per second
 GAME_SPAWN_PERIOD = 1.0 # how many seconds between spawning objects
 
-GAME_SHOW_HISCORES = 26
-GAME_SHOW_TITLE = 27
+GAME_SHOW_HISCORES = 26 # event injected to show hiscores
+GAME_SHOW_TITLE = 27 # event to show titlescreen
 class Game(object):
     '''
     The whole reason for creating every other class.
@@ -285,6 +326,11 @@ class Game(object):
         self.infodisplay = InfoDisplay((20,20))
         self.populate_info_display()
         
+        hp_width = 200
+        hp_height = 40
+        self.hp_bar = HPBar(self.settings.default_hp, hp_width, hp_height)
+        self.hp_bar.set_position((hp_height*2, self.screen_rect.height-hp_height*2))
+        
         self.entity_list = []
         
         # Useful to remove entities that fly off the screen too far
@@ -294,10 +340,7 @@ class Game(object):
         self.despawn_rect.center = self.screen_rect.center
         
         self.start_game()
-        
-        self.add_entity(entity.Hole(Vector2D(250, 410), Vector2D(0,0), 0.0, 0.0))
-        #self.add_entity(entity.WeaponPowerup(Vector2D(300, 410), Vector2D(0,0), 0.0, 0.0))
-    
+
     def default_settings(self):
         self.settings = Game.Settings({'difficulty': GAME_DIFF_MEDIUM, 'mode': GAME_MODE_NORMAL})
         
@@ -340,7 +383,12 @@ class Game(object):
         self.infodisplay.add_text(text)
         
     def update_distance_display(self):
-        self.distance_text.set_value(self.distance_travelled)
+        value = "%.2f" % self.distance_travelled
+        
+        if self.settings.mode == GAME_MODE_NORMAL:
+            value += " of " + ("%.0f"%self.distance)
+        
+        self.distance_text.set_value(value)
         
     def update_points_display(self):
         self.points_text.set_value(self.player.get_points())
@@ -350,7 +398,7 @@ class Game(object):
         
     def update_shield_display(self):
         if self.player.has_shield() == True:
-            self.shield_text.set_value(str(self.player.get_shield_timer()) + " seconds")
+            self.shield_text.set_value(("%.2f"%self.player.get_shield_timer()) + " seconds")
             self.shield_text.set_visible(True)
         else:
             self.shield_text.set_visible(False)
@@ -359,7 +407,7 @@ class Game(object):
         
     def update_weapon_display(self):
         if self.player.has_weapon_upgrade() == True:
-            self.weapon_text.set_value(str(self.player.get_weapon_upgrades()) + " times")
+            self.weapon_text.set_value(self.player.get_weapon_upgrades() + " times")
             self.weapon_text.set_visible(True)
         else:
             self.weapon_text.set_visible(False)
@@ -380,6 +428,8 @@ class Game(object):
         self.update_regens_display()
         self.update_shield_display()
         self.update_weapon_display()
+        
+        self.shooting = False
         
         self.game_won = False
         self.game_over = False
@@ -427,9 +477,11 @@ class Game(object):
         speed = self.random_float(v_min, v_max)
         
         velocity = Vector2D(-1.0, 0.0).rotate(self.random_float(-entity.HOLE_DIRECTION_SPREAD, entity.HOLE_DIRECTION_SPREAD)).scale(speed)
+        ang_velocity = self.random_float(-entity.HOLE_DIRECTION_SPREAD, entity.HOLE_DIRECTION_SPREAD)
         
-        ent = entity.Hole(position, velocity, 0.0, 0.0)
-        self.add_entity(ent)
+        ent = entity.Hole(position, velocity, 0.0, ang_velocity)
+        # holes should be drawn under other entities:
+        self.add_entity_bottom(ent)
     
     def spawn_powerup(self, powerup_class):
         position = self.random_position()
@@ -525,40 +577,59 @@ class Game(object):
         return expl
     
     def add_entity(self, entity):
+        '''
+        inserts a new entity into the game
+        '''
         if entity != None:
             self.entity_list.append(entity)
+            
+    def add_entity_bottom(self, entity):
+        '''
+        inserts a new entity below all others
+        '''
+        if entity != None:
+            self.entity_list.insert(0, entity)
     
     def key_down(self, key):
         if self.game_over == False:
             if key == pygame.K_w or key == pygame.K_UP:
                 self.player.accelerate(True)
-            elif key == pygame.K_RIGHT or key == pygame.K_d:
+            if key == pygame.K_RIGHT or key == pygame.K_d:
                 self.player.turn_clockwise()
-            elif key == pygame.K_LEFT or key == pygame.K_a:
+            if key == pygame.K_LEFT or key == pygame.K_a:
                 self.player.turn_counterclockwise()
-            elif key == pygame.K_SPACE:
-                self.add_entity(self.player.shoot())
-            elif key == pygame.K_k:
+            if key == pygame.K_SPACE:
+                self.shooting = True
+            elif key == pygame.K_k: # kill yourself
                 if self.player.get_alive() == True:
+                    self.player.set_hp(0)
                     self.player.set_alive(False)
                     self.player_destroyed()
                     self.entity_list.remove(self.player)
             elif key == pygame.K_p: # win the game
                 self.distance_travelled = self.distance
         else:
-            if self.settings.mode == GAME_MODE_NORMAL or self.settings.mode == GAME_MODE_ENDURANCE:
-                pygame.event.post(pygame.event.Event(GAME_SHOW_HISCORES))
-            else:
-                pygame.event.post(pygame.event.Event(GAME_SHOW_TITLE))
+            if key == pygame.K_RETURN:
+                if self.settings.mode == GAME_MODE_NORMAL or self.settings.mode == GAME_MODE_ENDURANCE:
+                    pygame.event.post(pygame.event.Event(GAME_SHOW_HISCORES))
+                else:
+                    pygame.event.post(pygame.event.Event(GAME_SHOW_TITLE))
     
     def key_up(self, key):
         if self.game_over == False:
             if key == pygame.K_w or key == pygame.K_UP:
                 self.player.accelerate(False)
-            elif key == pygame.K_RIGHT or key == pygame.K_d:
-                self.player.turn_stop()
-            elif key == pygame.K_LEFT or key == pygame.K_a:
-                self.player.turn_stop()
+            if key == pygame.K_RIGHT or key == pygame.K_d:
+                self.player.turn_cw_stop()
+            if key == pygame.K_LEFT or key == pygame.K_a:
+                self.player.turn_ccw_stop()
+            if key == pygame.K_SPACE:
+                self.shooting = False
+                
+    def player_fire_weapon(self):
+        if self.shooting:
+            if self.player.can_shoot():
+                self.add_entity(self.player.shoot())
             
     def remove_offscreen_entity(self, entity):
         '''
@@ -610,19 +681,18 @@ class Game(object):
             if self.distance_travelled >= self.distance:
                 message1_text = "Winner, you have reached the destination!"
                 message2_text = "You collected " + str(self.player.get_points()) + " points along the way."
-                message3_text = "Press a key to record your score for everyone to see."
+                message3_text = "Press enter to record your score for everyone to see."
             else:
-                pass
                 message1_text = "What a pity, you didn't make it." 
-                message2_text = "You only had a distance of " + str(self.distance-self.distance_travelled) + " left too..."
-                message3_text = "Press a key to see everyone else who did better than you."
+                message2_text = "You only had a distance of " + ("%.2f"%(self.distance-self.distance_travelled)) + " left too..."
+                message3_text = "Press enter key to see everyone else who did better than you."
         elif self.settings.mode == GAME_MODE_ENDURANCE:
-            message1_text = "You endured a distance of " + str(self.distance_travelled) + ". Congratulations."
+            message1_text = "You endured a distance of " + ("%.2f"%(self.distance_travelled)) + ". Congratulations."
             message2_text = "You also collected " + str(self.player.get_points()) + " points along the way."
-            message3_text = "Press a key to record your score."
+            message3_text = "Press enter key to record your score."
         else:
             message1_text = "Well this is unusual, I don't know this game mode."
-            message2_text = "Press a key, anyway, to return to the title screen."
+            message2_text = "Press enter key, anyway, to return to the title screen."
             message3_text = ""
             
         x = self.game_over_text.get_x()
@@ -654,7 +724,7 @@ class Game(object):
         
     def game_over_draw(self, surface):
         '''
-        Show game over/win text for a while.
+        Show game over/win text
         '''
         self.game_over_text.draw(surface)
         self.game_over_message1.draw(surface)
@@ -664,10 +734,6 @@ class Game(object):
     def update(self, frametime):
         self.star_field.update(frametime)
         
-        # needs to be done here because the value
-        # is a timer, and the player may or may not
-        # have the powerup.
-        self.update_shield_display()
         self.dynamics.resolve_collisions(self.entity_list, frametime)
         for entity1 in self.entity_list:
             entity1.update(frametime)
@@ -700,6 +766,13 @@ class Game(object):
                     if entity2 == entity1:
                         continue # avoid divn by zero in hole_gravity_force (zero separation between ent and itself)
                     self.hole_gravity_force(entity1, entity2)
+                    
+        # update shield powerup display
+        self.update_shield_display()
+                    
+        # update HP bar, regardless of if dead or not
+        self.hp_bar.set_value(self.player.get_hp())
+        
         '''
         Do the spawning and distance updates
         '''
@@ -709,6 +782,8 @@ class Game(object):
                 # when the player is alive
                 self.update_spawner(frametime)
                 self.update_distance(frametime)
+                
+                self.player_fire_weapon()
             else:
                 # spawn the player when they finish exploding
                 if self.is_player_finished_exploding():
@@ -719,6 +794,7 @@ class Game(object):
         '''
         Draw the star field and all the
         entities on top, basically.
+        draw info texts and hp bar as well
         '''
         surface.fill((0,0,0))
         self.star_field.draw(surface)
@@ -726,6 +802,7 @@ class Game(object):
             entity.draw(surface)
             
         if self.game_over == False:
+            self.hp_bar.draw(surface)
             self.infodisplay.draw(surface)
         else:
             self.game_over_draw(surface)

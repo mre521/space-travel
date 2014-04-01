@@ -147,12 +147,15 @@ class Entity(Object2D):
 PLAYER_INVULN_TIME = 3.0
 # time in seconds between player visible/nonvisible flash after spawning
 PLAYER_INVULN_FLASH_PERIOD = 0.0625
-PLAYER_THRUST = 10000.0
-PLAYER_TURN_SPEED = math.pi # half a rotation per second
+PLAYER_THRUST = 30000.0
+PLAYER_TURN_SPEED = 2*math.pi # half a rotation per second
 PLAYER_SHOT_SPEED = 1000.0
 PLAYER_SHOT_DAMAGE = 10
 PLAYER_SHOT_TIME = 0.5
 PLAYER_SHIELD_TIME = 20.0
+pygame.mixer.init()
+SHOT_SOUND = pygame.mixer.Sound("snd/shot.wav")
+SHOT_SOUND.set_volume(0.20)
 class Player(Entity):
     '''
     The Entity controlled by the player;
@@ -173,6 +176,8 @@ class Player(Entity):
             
             self.damage = damage
             self.parent = parent
+            
+            SHOT_SOUND.play()
             
         def get_damage(self):
             return self.damage
@@ -229,6 +234,8 @@ class Player(Entity):
         self.shield_timer = 0.0
         
         self.turn_speed = math.pi
+        self.turn_cw = False
+        self.turn_ccw = False
         self.thrust = PLAYER_THRUST
         
         
@@ -247,7 +254,6 @@ class Player(Entity):
         self.shot_timer = 0.0
         
         # remove powerups
-        
         self.shot_time = PLAYER_SHOT_TIME
         self.weapon_upgrades = 0
         self.shield_timer = 0.0
@@ -273,10 +279,11 @@ class Player(Entity):
             self.invuln_flash_time = PLAYER_INVULN_FLASH_PERIOD
             
     def create_shot(self):
-        shot_velocity = Vector2D(1, 0).rotate(self.orientation).scale(self.shot_speed)
+        direction = Vector2D(1, 0).rotate(self.orientation)
+        shot_velocity = direction.scaled(self.shot_speed)
         shot_velocity.add(self.velocity)
         
-        shot_position = self.position.copy()
+        shot_position = self.position.copy().add(direction.scaled(30))
         shot_orientation = self.orientation
         
         return Player.Shot(self, self.shot_damage, shot_position, shot_velocity, shot_orientation)
@@ -323,13 +330,24 @@ class Player(Entity):
                 self.shield_timer = 0.0
                 
     def turn_clockwise(self):
+        self.turn_cw = True
         self.ang_velocity = self.turn_speed
     
     def turn_counterclockwise(self):
+        self.turn_ccw = True
         self.ang_velocity = -self.turn_speed
                 
-    def turn_stop(self):
+    def turn_cw_stop(self):
         self.ang_velocity = 0.0
+        self.turn_cw = False
+        if self.turn_ccw == True:
+            self.turn_counterclockwise()
+        
+    def turn_ccw_stop(self):
+        self.ang_velocity = 0.0
+        self.turn_ccw = False
+        if self.turn_cw == True:
+            self.turn_clockwise()
         
     def accelerate(self, accel):
         self.accelerating = accel
@@ -354,6 +372,16 @@ class Player(Entity):
         Entity.update(self, dt)
         self.update_shot_timer(dt)
         self.update_shield_timer(dt)
+        
+    def apply_damage(self, damage, source):
+        '''
+        Overrided to implement Asteroid shield
+        '''
+        if isinstance(source, Asteroid):
+            if self.has_shield() == True:
+                return
+        else:
+            Entity.apply_damage(self, damage, source)
         
     def hit_by_entity(self, entity):
         '''
@@ -427,8 +455,7 @@ class Asteroid(Entity):
         Asteroid is destroyed
         '''
         if isinstance(entity, Player):
-            if entity.has_shield() == False:
-                entity.apply_damage(self.get_damage(), entity)
+            entity.apply_damage(self.get_damage(), self)
             self.set_alive(False)
             return True
         
@@ -455,13 +482,12 @@ class Asteroid(Entity):
         if isinstance(entity, Asteroid):
             return True
         
-    def draw(self, surface):
-        Entity.draw(self, surface)
-        #Object2D.draw_phys(self, surface)
         
 HOLE_VELOCITY_MIN = 80
 HOLE_VELOCITY_MAX = 100
 HOLE_DIRECTION_SPREAD = math.pi/6 
+HOLE_INCOMING = pygame.mixer.Sound("snd/hole_incoming.wav")
+HOLE_INCOMING.set_volume(0.5)
 class Hole(Entity):
     '''
     Really avoid these.
@@ -486,20 +512,23 @@ class Hole(Entity):
         mass = 50000000.0
         Entity.__init__(self, 1, tuple(geometry), position, velocity, orientation, ang_velocity, mass)
         
+        self.add_frame(pygame.image.load("obj/hole.png"), (255,0,255))
+        
+        # warn player about black hole
+        HOLE_INCOMING.play()
+        
     def hit_by_entity(self, entity):
         '''
-        Holes kill any entity and are not
-        affected by a collision
+        Holes kill any entity, including other
+        Holes, and are not affected by collisions
         '''
         entity.set_alive(False)
         return False
     
-    def draw(self, surface):
-        Object2D.draw_phys(self, surface)
-    
 POWERUP_VELOCITY_MIN = 200
 POWERUP_VELOCITY_MAX = 300
 POWERUP_POINTS = 250
+POWERUP_SOUND = pygame.mixer.Sound("snd/powerup.wav")
 class Powerup(Entity):
     '''
     Something beneficial to the Player
@@ -517,7 +546,8 @@ class Powerup(Entity):
         Specific powerups override to
         implement their specific effect
         '''
-        pass
+        POWERUP_SOUND.play()
+ 
     
     def hit_by_entity(self, entity):
         '''
@@ -542,6 +572,7 @@ class ShieldPowerup(Powerup):
         self.add_frame(pygame.image.load("obj/shield.png"), (255,0,255))
         
     def give_to(self, player):
+        Powerup.give_to(self, player)
         player.give_shield()
         
 class WeaponPowerup(Powerup):
@@ -553,8 +584,11 @@ class WeaponPowerup(Powerup):
         self.add_frame(pygame.image.load("obj/weapon.png"), (255,0,255))
         
     def give_to(self, player):
+        Powerup.give_to(self, player)
         player.increase_shot_frequency()
     
+EXPLOSION_SOUND = pygame.mixer.Sound("snd/explosion.wav")
+EXPLOSION_SOUND.set_volume(0.50)
 class Explosion(Entity):
     '''
     Boom
@@ -574,6 +608,8 @@ class Explosion(Entity):
         
         self.set_collidable(False)
         
+        EXPLOSION_SOUND.play()
+        
     def update(self, dt):
         '''
         Fall through to the default Entity updater
@@ -588,9 +624,3 @@ class Explosion(Entity):
     
     def finished(self):
         return self.get_is_animating() == False
-    
-    
-    '''
-    def draw(self, surface):
-        Object2D.draw_phys(self, surface)
-    '''
