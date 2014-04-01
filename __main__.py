@@ -2,7 +2,7 @@ import app
 import cProfile
 import pstats
 
-DEBUG = True
+DEBUG = False
 
 if __name__=="__main__":
     if DEBUG == True:
